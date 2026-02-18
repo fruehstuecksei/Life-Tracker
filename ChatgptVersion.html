@@ -2,121 +2,117 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LifeTracker</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
 <style>
-    /* Reset */
-    * { box-sizing: border-box; margin:0; padding:0; }
+:root {
+    --bg: #0f172a;
+    --card: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.1);
+    --primary: #3b82f6;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --text: #f1f5f9;
+}
 
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
-        min-height: 100vh;
-        padding: 30px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
+* { box-sizing: border-box; }
 
-    h1 {
-        font-size: 2.2rem;
-        color: #1f2937;
-        margin-bottom: 30px;
-        text-align: center;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(circle at top, #1e293b, #0f172a);
+    color: var(--text);
+    padding: 20px;
+}
 
-    .section {
-        background: white;
-        border-radius: 16px;
-        padding: 25px 30px;
-        width: 100%;
-        max-width: 600px;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-        transition: transform 0.2s ease;
-    }
-    .section:hover { transform: translateY(-3px); }
+h1 {
+    text-align: center;
+    font-weight: 800;
+    font-size: 28px;
+    margin-bottom: 30px;
+}
 
-    h2 { margin-bottom: 15px; color: #334155; }
-    h3 { margin-top: 20px; margin-bottom: 10px; color: #475569; font-size: 1rem; }
+.section {
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    animation: fadeIn 0.4s ease;
+}
 
-    select {
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        font-size: 15px;
-    }
+h2 {
+    margin-top: 0;
+    font-weight: 600;
+}
 
-    button {
-        padding: 10px 16px;
-        margin: 5px 5px 5px 0;
-        font-size: 15px;
-        cursor: pointer;
-        border-radius: 10px;
-        border: none;
-        background: linear-gradient(90deg,#3b82f6,#60a5fa);
-        color: white;
-        font-weight: bold;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    button:hover {
-        background: linear-gradient(90deg,#2563eb,#3b82f6);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-    }
+button {
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    background: var(--primary);
+    color: white;
+    transition: all 0.2s ease;
+}
 
-    input {
-        padding: 10px 12px;
-        font-size: 15px;
-        border-radius: 10px;
-        border: 1px solid #ccc;
-        margin-right: 10px;
-        width: 140px;
-    }
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(59,130,246,0.4);
+}
 
-    .status {
-        font-weight: bold;
-        margin-left: 12px;
-        font-size: 0.95rem;
-    }
-    .running { color: #16a34a; }
-    .stopped { color: #dc2626; }
+button.stop {
+    background: var(--danger);
+}
 
-    .category-row {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-        justify-content: space-between;
-    }
+button.counter {
+    background: var(--success);
+}
 
-    .timer-counter-row {
-        display: flex;
-        justify-content: space-between;
-        flex-wrap: wrap;
-    }
+input {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: white;
+    width: 120px;
+}
 
-    .timer-counter-row div {
-        flex: 1 1 48%;
-        margin-bottom: 12px;
-    }
+.category-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 10px 0;
+}
 
-    .timer-counter-row input {
-        width: calc(100% - 90px);
-    }
+.status {
+    font-weight: 600;
+}
 
-    .live-timer {
-        font-family: 'Courier New', Courier, monospace;
-        margin-left: 10px;
-        font-size: 0.95rem;
-        color: #0f172a;
-    }
+.running { color: var(--success); }
+.stopped { color: var(--danger); }
 
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 </style>
 </head>
+
 <body>
 
-<h1>LifeTracker 💪⏱</h1>
+<h1>🚀 LifeTracker</h1>
 
 <div class="section">
     <h2>Modus</h2>
@@ -127,21 +123,19 @@
 </div>
 
 <div class="section">
-    <h2>Timer</h2>
+    <h2>⏱ Timer</h2>
     <div id="timerContainer"></div>
 
-    <h3>Neue Kategorie hinzufügen</h3>
     <input id="newTimerCategory" type="text" placeholder="Neue Kategorie">
-    <button onclick="addTimerCategory()">Hinzufügen</button>
+    <button onclick="addTimerCategory()">+ Hinzufügen</button>
 </div>
 
 <div class="section">
-    <h2>Counter</h2>
+    <h2>🏋 Counter</h2>
     <div id="counterContainer"></div>
 
-    <h3>Neue Kategorie hinzufügen</h3>
     <input id="newCounterCategory" type="text" placeholder="Neue Kategorie">
-    <button onclick="addCounterCategory()">Hinzufügen</button>
+    <button onclick="addCounterCategory()">+ Hinzufügen</button>
 </div>
 
 <script>
@@ -149,13 +143,21 @@ const URLS = {
     test: "https://n8n.srv1377935.hstgr.cloud/webhook-test/lifetracker",
     prod: "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker"
 };
-let currentMode = "test";
-function switchMode() { currentMode = document.getElementById("modeSwitcher").value; }
 
-let timerCategories = ["sleep", "sport", "eating"];
-let counterCategories = ["pushups", "pullups"];
-let timerState = {};
-let liveTimers = {};
+let currentMode = "test";
+let timerCategories = JSON.parse(localStorage.getItem("timerCats")) || ["sleep","sport","eating"];
+let counterCategories = JSON.parse(localStorage.getItem("counterCats")) || ["pushups","pullups"];
+let timerState = JSON.parse(localStorage.getItem("timerState")) || {};
+
+function switchMode() {
+    currentMode = document.getElementById("modeSwitcher").value;
+}
+
+function saveState() {
+    localStorage.setItem("timerCats", JSON.stringify(timerCategories));
+    localStorage.setItem("counterCats", JSON.stringify(counterCategories));
+    localStorage.setItem("timerState", JSON.stringify(timerState));
+}
 
 function renderTimers() {
     const container = document.getElementById("timerContainer");
@@ -163,16 +165,14 @@ function renderTimers() {
 
     timerCategories.forEach(cat => {
         const running = timerState[cat] === true;
-        let liveTime = liveTimers[cat] || 0;
-        let liveDisplay = running ? `<span class="live-timer">${formatSeconds(liveTime)}</span>` : "";
-
         container.innerHTML += `
             <div class="category-row">
-                <button onclick="sendTimer('${cat}')">${cat} Start/Stop</button>
+                <button class="${running ? "stop" : ""}" onclick="sendTimer('${cat}')">
+                    ${running ? "Stop" : "Start"} ${cat}
+                </button>
                 <span class="status ${running ? "running" : "stopped"}">
                     ${running ? "🟢 läuft" : "🔴 gestoppt"}
                 </span>
-                ${liveDisplay}
             </div>
         `;
     });
@@ -186,50 +186,24 @@ function renderCounters() {
         container.innerHTML += `
             <div class="category-row">
                 <input id="${cat}" type="number" placeholder="${cat}">
-                <button onclick="sendCounter('${cat}')">Senden</button>
+                <button class="counter" onclick="sendCounter('${cat}')">Senden</button>
             </div>
         `;
     });
 }
 
-function addTimerCategory() {
-    const input = document.getElementById("newTimerCategory");
-    const newCat = input.value.trim();
-    if (!newCat) return;
-    if (!timerCategories.includes(newCat)) {
-        timerCategories.push(newCat);
-        timerState[newCat] = false;
-        liveTimers[newCat] = 0;
-        renderTimers();
-    }
-    input.value = "";
-}
-
-function addCounterCategory() {
-    const input = document.getElementById("newCounterCategory");
-    const newCat = input.value.trim();
-    if (!newCat) return;
-    if (!counterCategories.includes(newCat)) {
-        counterCategories.push(newCat);
-        renderCounters();
-    }
-    input.value = "";
-}
-
 function sendTimer(category) {
-    const running = !(timerState[category] || false);
-    timerState[category] = running;
-
-    if (running) liveTimers[category] = 0; // reset timer when starting
+    timerState[category] = !timerState[category];
+    saveState();
     renderTimers();
 
     fetch(URLS[currentMode], {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-            event: running ? "timer_start" : "timer_stop",
+            event: timerState[category] ? "timer_start" : "timer_stop",
             category: category,
-            timestamp: Math.floor(Date.now() / 1000)
+            timestamp: Math.floor(Date.now()/1000)
         })
     });
 }
@@ -245,33 +219,44 @@ function sendCounter(category) {
             event: "counter",
             category: category,
             value: Number(value),
-            timestamp: Math.floor(Date.now() / 1000)
+            timestamp: Math.floor(Date.now()/1000)
         })
     });
 
     document.getElementById(category).value = "";
 }
 
-// Helper: Format Sekunden zu HH:MM:SS
-function formatSeconds(sec) {
-    const h = Math.floor(sec/3600);
-    const m = Math.floor((sec%3600)/60);
-    const s = sec%60;
-    return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+function addTimerCategory() {
+    const input = document.getElementById("newTimerCategory");
+    const newCat = input.value.trim();
+    if (!newCat || timerCategories.includes(newCat)) return;
+
+    timerCategories.push(newCat);
+    timerState[newCat] = false;
+    saveState();
+    renderTimers();
+    input.value = "";
 }
 
-// Live Timer Update
-setInterval(() => {
-    Object.keys(timerState).forEach(cat => {
-        if (timerState[cat]) liveTimers[cat]++;
-    });
-    renderTimers();
-}, 1000);
+function addCounterCategory() {
+    const input = document.getElementById("newCounterCategory");
+    const newCat = input.value.trim();
+    if (!newCat || counterCategories.includes(newCat)) return;
 
-// Initial Render
-timerCategories.forEach(cat => liveTimers[cat] = 0);
+    counterCategories.push(newCat);
+    saveState();
+    renderCounters();
+    input.value = "";
+}
+
 renderTimers();
 renderCounters();
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+}
 </script>
+
 </body>
 </html>
+
