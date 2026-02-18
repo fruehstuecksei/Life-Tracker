@@ -37,7 +37,7 @@ h1 {
     text-align: center;
     font-weight: 800;
     font-size: 28px;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .section {
@@ -72,13 +72,8 @@ button:hover {
     box-shadow: 0 6px 15px rgba(59,130,246,0.4);
 }
 
-button.stop {
-    background: var(--danger);
-}
-
-button.counter {
-    background: var(--success);
-}
+button.stop { background: var(--danger); }
+button.counter { background: var(--success); }
 
 input {
     padding: 10px;
@@ -98,6 +93,7 @@ input {
 
 .status {
     font-weight: 600;
+    margin-left: 10px;
 }
 
 .running { color: var(--success); }
@@ -113,6 +109,16 @@ input {
 <body>
 
 <h1>🚀 LifeTracker</h1>
+
+<!-- PIN Schutz -->
+<div id="pinOverlay" style="
+position:fixed; inset:0; background:#0f172a; 
+display:flex; flex-direction:column; 
+justify-content:center; align-items:center; z-index:9999;">
+<h2>🔒 LifeTracker</h2>
+<input id="pinInput" type="password" placeholder="PIN eingeben" style="margin:10px;">
+<button onclick="checkPin()">Login</button>
+</div>
 
 <div class="section">
     <h2>Modus</h2>
@@ -138,19 +144,37 @@ input {
     <button onclick="addCounterCategory()">+ Hinzufügen</button>
 </div>
 
+<div class="section">
+<h2>📊 Statistik (lokal)</h2>
+<div id="stats"></div>
+</div>
+
 <script>
+const APP_PIN = "1234"; // PIN für Zugriff
+
+function checkPin() {
+    const value = document.getElementById("pinInput").value;
+    if (value === APP_PIN) {
+        document.getElementById("pinOverlay").style.display = "none";
+    } else {
+        alert("Falscher PIN");
+    }
+}
+
+// URLs
 const URLS = {
     test: "https://n8n.srv1377935.hstgr.cloud/webhook-test/lifetracker",
     prod: "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker"
 };
 
-let currentMode = "test";
+let currentMode = localStorage.getItem("mode") || "prod";
 let timerCategories = JSON.parse(localStorage.getItem("timerCats")) || ["sleep","sport","eating"];
 let counterCategories = JSON.parse(localStorage.getItem("counterCats")) || ["pushups","pullups"];
 let timerState = JSON.parse(localStorage.getItem("timerState")) || {};
 
 function switchMode() {
     currentMode = document.getElementById("modeSwitcher").value;
+    localStorage.setItem("mode", currentMode);
 }
 
 function saveState() {
@@ -159,25 +183,48 @@ function saveState() {
     localStorage.setItem("timerState", JSON.stringify(timerState));
 }
 
+function formatTime(seconds) {
+    const h = Math.floor(seconds/3600);
+    const m = Math.floor((seconds%3600)/60);
+    const s = seconds%60;
+    return `${h}h ${m}m ${s}s`;
+}
+
+// Render Timer mit Live Anzeige & Bearbeiten/Löschen
 function renderTimers() {
     const container = document.getElementById("timerContainer");
     container.innerHTML = "";
 
     timerCategories.forEach(cat => {
-        const running = timerState[cat] === true;
+        const running = timerState[cat]?.running || false;
+        const start = timerState[cat]?.start || null;
+
+        let liveTime = "";
+        if (running && start) {
+            const diff = Math.floor(Date.now()/1000 - start);
+            liveTime = formatTime(diff);
+        }
+
         container.innerHTML += `
             <div class="category-row">
-                <button class="${running ? "stop" : ""}" onclick="sendTimer('${cat}')">
-                    ${running ? "Stop" : "Start"} ${cat}
-                </button>
-                <span class="status ${running ? "running" : "stopped"}">
-                    ${running ? "🟢 läuft" : "🔴 gestoppt"}
-                </span>
+                <div>
+                    <button class="${running ? "stop" : ""}" onclick="sendTimer('${cat}')">
+                        ${running ? "Stop" : "Start"} ${cat}
+                    </button>
+                    <div style="font-size:12px;margin-top:4px;">
+                        ${running ? "⏱ " + liveTime : ""}
+                    </div>
+                </div>
+                <div>
+                    <button onclick="editCategory('${cat}')">✏️</button>
+                    <button onclick="deleteCategory('${cat}')">🗑️</button>
+                </div>
             </div>
         `;
     });
 }
 
+// Render Counter
 function renderCounters() {
     const container = document.getElementById("counterContainer");
     container.innerHTML = "";
@@ -192,8 +239,17 @@ function renderCounters() {
     });
 }
 
+// Timer senden
 function sendTimer(category) {
-    timerState[category] = !timerState[category];
+    if (!timerState[category]) timerState[category] = { running:false, start:null };
+    const isRunning = timerState[category].running;
+
+    if (!isRunning) {
+        timerState[category] = { running: true, start: Math.floor(Date.now()/1000) };
+    } else {
+        timerState[category].running = false;
+    }
+
     saveState();
     renderTimers();
 
@@ -201,13 +257,14 @@ function sendTimer(category) {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-            event: timerState[category] ? "timer_start" : "timer_stop",
+            event: timerState[category].running ? "timer_start" : "timer_stop",
             category: category,
             timestamp: Math.floor(Date.now()/1000)
         })
     });
 }
 
+// Counter senden
 function sendCounter(category) {
     const value = document.getElementById(category).value;
     if (!value) return;
@@ -226,13 +283,37 @@ function sendCounter(category) {
     document.getElementById(category).value = "";
 }
 
+// Kategorie bearbeiten
+function editCategory(cat) {
+    const newName = prompt("Neuer Name:", cat);
+    if (!newName || newName === cat) return;
+
+    timerCategories = timerCategories.map(c => c === cat ? newName : c);
+    if (timerState[cat]) {
+        timerState[newName] = timerState[cat];
+        delete timerState[cat];
+    }
+    saveState();
+    renderTimers();
+}
+
+// Kategorie löschen
+function deleteCategory(cat) {
+    if (!confirm("Kategorie wirklich löschen?")) return;
+    timerCategories = timerCategories.filter(c => c !== cat);
+    delete timerState[cat];
+    saveState();
+    renderTimers();
+}
+
+// Neue Kategorien
 function addTimerCategory() {
     const input = document.getElementById("newTimerCategory");
     const newCat = input.value.trim();
     if (!newCat || timerCategories.includes(newCat)) return;
 
     timerCategories.push(newCat);
-    timerState[newCat] = false;
+    timerState[newCat] = { running:false, start:null };
     saveState();
     renderTimers();
     input.value = "";
@@ -249,9 +330,26 @@ function addCounterCategory() {
     input.value = "";
 }
 
+// Statistik
+function renderStats() {
+    let totalTimers = Object.values(timerState).filter(t => t.running).length;
+    document.getElementById("stats").innerHTML = `
+        Aktive Timer: ${totalTimers}<br>
+        Kategorien: ${timerCategories.length}
+    `;
+}
+
+// Interval für Live Timer & Stats
+setInterval(() => {
+    renderTimers();
+    renderStats();
+}, 1000);
+
 renderTimers();
 renderCounters();
+renderStats();
 
+// Service Worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
 }
@@ -259,4 +357,6 @@ if ('serviceWorker' in navigator) {
 
 </body>
 </html>
+
+
 
