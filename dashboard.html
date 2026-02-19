@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LifeTracker – Dashboard Heute</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    body {
+        font-family: Inter, sans-serif;
+        background: #0f172a;
+        color: #f1f5f9;
+        padding: 20px;
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    #xpBox {
+        background: rgba(255,255,255,0.06);
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    #chartContainer {
+        background: rgba(255,255,255,0.06);
+        padding: 20px;
+        border-radius: 12px;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>📊 Dashboard – Heute</h1>
+
+<div id="xpBox">
+    XP heute: <span id="xpToday">0</span>  
+    |  
+    XP gesamt: <span id="xpTotal">0</span>
+</div>
+
+<div id="chartContainer">
+    <canvas id="todayChart"></canvas>
+</div>
+
+<script>
+const TIMER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.timer";
+const COUNTER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.counter";
+
+// Ziele pro Kategorie (kannst du später dynamisch machen)
+const GOALS = {
+    sleep: 8 * 3600,
+    sport: 3600,
+    pushups: 50,
+    cycle: 20
+};
+
+// XP Regeln
+function calculateXP(category, value) {
+    if (!GOALS[category]) return 0;
+    if (value >= GOALS[category]) return 10; // Bonus
+    return Math.floor((value / GOALS[category]) * 10);
+}
+
+function isToday(ts) {
+    const d = new Date(ts * 1000);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() &&
+           d.getMonth() === now.getMonth() &&
+           d.getDate() === now.getDate();
+}
+
+async function loadData() {
+    const timerData = await fetch(TIMER_URL).then(r => r.json());
+    const counterData = await fetch(COUNTER_URL).then(r => r.json());
+
+    const todayTotals = {};
+
+    // TIMER
+    timerData.forEach(entry => {
+        if (!isToday(entry.start_ts)) return;
+        const cat = entry.category;
+        todayTotals[cat] = (todayTotals[cat] || 0) + entry.duration_s;
+    });
+
+    // COUNTER
+    counterData.forEach(entry => {
+        if (!isToday(entry.timestamp)) return;
+        const cat = entry.category;
+        todayTotals[cat] = (todayTotals[cat] || 0) + entry.value;
+    });
+
+    // XP Berechnung
+    let xpToday = 0;
+    let xpTotal = 0;
+
+    Object.entries(todayTotals).forEach(([cat, val]) => {
+        xpToday += calculateXP(cat, val);
+        xpTotal += calculateXP(cat, val); // später: echte Gesamt-XP
+    });
+
+    document.getElementById("xpToday").textContent = xpToday;
+    document.getElementById("xpTotal").textContent = xpTotal;
+
+    renderChart(todayTotals);
+}
+
+let chart;
+
+function renderChart(data) {
+    const ctx = document.getElementById("todayChart");
+
+    if (chart) chart.destroy();
+
+    const labels = Object.keys(data);
+    const values = Object.values(data);
+
+    const goalLines = labels.map(cat => GOALS[cat] || null);
+
+    chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: "Heute",
+                    data: values,
+                    backgroundColor: "#3b82f6"
+                },
+                {
+                    label: "Ziel",
+                    data: goalLines,
+                    type: "line",
+                    borderColor: "#22c55e",
+                    borderWidth: 2,
+                    pointRadius: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+loadData();
+</script>
+
+</body>
+</html>
