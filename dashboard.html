@@ -4,286 +4,421 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LifeTracker – Dashboard Heute</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-body { font-family: Inter, sans-serif; background: #0f172a; color: #f1f5f9; padding: 20px; padding-bottom: 120px; }
-h1 { text-align: center; margin-bottom: 20px; }
-#xpBox { background: rgba(255,255,255,0.06); padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align: center; font-size: 18px; font-weight: 600; }
-#chartContainer { background: rgba(255,255,255,0.06); padding: 20px; border-radius: 12px; margin-bottom: 30px; }
-#goalEditor, #folderManager { background: rgba(255,255,255,0.06); padding: 20px; border-radius: 12px; margin-bottom: 30px; }
-.goalRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.goalRow select[multiple] { height: 80px; width: 150px; }
-.goalRow input { width: 120px; padding: 6px; border-radius: 8px; border: none; background: #1e293b; color: white; text-align: right; }
-.deleteBtn { background: #ef4444; border: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; color: white; font-weight: 600; }
-.addSection { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
-select, input[type="number"], input[type="text"] { width: 100%; padding: 8px; border-radius: 8px; border: none; background: #1e293b; color: white; margin-bottom: 10px; }
-#bottomNav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-around; align-items: center; z-index: 999; }
-.navItem { color: #f1f5f9; font-size: 26px; text-decoration: none; opacity: 0.6; transition: 0.2s; }
-.navItem.active { opacity: 1; transform: translateY(-4px); }
-.modeBtn { padding:8px 14px; margin: 0 4px; border-radius:10px; border:none; cursor:pointer; font-weight:600; background:#1e293b; color:white; opacity:0.6; transition:0.2s; }
-.modeBtn.active { opacity:1; background:#3b82f6; }
+body {
+    font-family: Inter, sans-serif;
+    background: #0f172a;
+    color: #f1f5f9;
+    padding: 20px;
+    padding-bottom: 120px;
+}
+h1 { text-align:center; margin-bottom:20px; }
+
+#xpBox, #chartContainer, #goalEditor {
+    background: rgba(255,255,255,0.06);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+}
+
+.goalRow {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+    gap:10px;
+}
+
+.goalRow input {
+    width:90px;
+    padding:6px;
+    border-radius:8px;
+    border:none;
+    background:#1e293b;
+    color:white;
+    text-align:right;
+}
+
+.modeBtn {
+    padding:8px 14px;
+    margin:0 4px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    font-weight:600;
+    background:#1e293b;
+    color:white;
+    opacity:0.6;
+    transition:0.2s;
+}
+.modeBtn.active {
+    opacity:1;
+    background:#3b82f6;
+}
+
+#bottomNav {
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:60px;
+    background:rgba(255,255,255,0.06);
+    backdrop-filter:blur(20px);
+    border-top:1px solid rgba(255,255,255,0.1);
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+}
+
+.navItem {
+    color:#f1f5f9;
+    font-size:26px;
+    text-decoration:none;
+    opacity:0.6;
+}
+.navItem.active {
+    opacity:1;
+    transform:translateY(-4px);
+}
+
+/* Tag-Chips */
+.tag-bar {
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:8px;
+    margin-bottom:20px;
+}
+
+.tag-chip {
+    padding:6px 12px;
+    border-radius:12px;
+    background:#1e293b;
+    cursor:pointer;
+    user-select:none;
+    transition:0.2s;
+    font-size:14px;
+}
+.tag-chip.active {
+    background:#3b82f6;
+}
 </style>
 </head>
+
 <body>
+
 <h1>📊 Dashboard – Heute</h1>
 
-<!-- Refresh + Mode -->
-<div style="text-align:center; margin-bottom:20px;">
-  <button id="refreshBtn" onclick="loadData()" style=" padding:10px 16px; border-radius:12px; border:none; cursor:pointer; font-weight:600; background:#3b82f6; color:white; "> 🔄 Aktualisieren </button>
-</div>
-<div style="text-align:center; margin-bottom:20px;">
-  <button onclick="setMode('timer')" id="btnTimer" class="modeBtn active">Timer</button>
-  <button onclick="setMode('counter')" id="btnCounter" class="modeBtn">Counter</button>
+<div style="text-align:center;margin-bottom:20px;">
+    <button onclick="loadData()" style="
+        padding:10px 16px;
+        border-radius:12px;
+        border:none;
+        font-weight:600;
+        background:#3b82f6;
+        color:white;
+        cursor:pointer;">
+        🔄 Aktualisieren
+    </button>
 </div>
 
-<!-- XP Anzeige -->
-<div id="xpBox"> XP heute: <span id="xpToday">0</span> | Gesamt: <span id="xpTotal">0</span> </div>
+<div style="text-align:center;margin-bottom:20px;">
+    <button onclick="setMode('timer')" id="btnTimer" class="modeBtn active">Timer</button>
+    <button onclick="setMode('counter')" id="btnCounter" class="modeBtn">Counter</button>
+</div>
 
-<!-- Chart -->
+<div style="text-align:center;margin-bottom:20px;">
+    <button onclick="setView('categories')" id="btnCategories" class="modeBtn active">Kategorien</button>
+    <button onclick="setView('tags')" id="btnTags" class="modeBtn">Tags</button>
+</div>
+
+<!-- Tag-Bar -->
+<div id="tagBar" class="tag-bar"></div>
+
+<div id="xpBox">
+    XP heute: <span id="xpToday">0</span>
+</div>
+
 <div id="chartContainer">
-  <canvas id="todayChart"></canvas>
+    <canvas id="todayChart"></canvas>
 </div>
 
-<!-- Ordnerverwaltung -->
-<div id="folderManager">
-  <h2>📂 Ordner & Kategorien</h2>
-  <div>
-    <label>Ordner wählen:</label>
-    <select id="folderSelect" onchange="renderOvercategories()">
-      <option value="timer">Timer</option>
-      <option value="counter">Counter</option>
-    </select>
-  </div>
-  <div id="overcategoryContainer"></div>
-  <div class="addSection">
-    <h4>Neue Überkategorie hinzufügen</h4>
-    <input id="newOvercategoryName" placeholder="Name">
-    <button onclick="addOvercategory()">+ Hinzufügen</button>
-  </div>
-</div>
-
-<!-- 🎯 Ziele -->
 <div id="goalEditor">
-  <h3>Ziele einstellen (<span id="goalModeLabel">Timer</span>)</h3>
-  <div id="goalList"></div>
-  <div class="addSection">
-    <h4>Neues Ziel hinzufügen</h4>
-    <label>Kategorie auswählen:</label>
-    <select id="addCategory"></select>
-    <label>Zielwert:</label>
-    <input id="addValue" type="number" min="0" placeholder="Minuten oder Anzahl">
-    <button onclick="addGoal()" style=" margin-top:10px; padding:8px 14px; border:none; border-radius:10px; background:#3b82f6; color:white; font-weight:600; cursor:pointer; ">Hinzufügen</button>
-  </div>
-  <button onclick="saveGoals()" style=" margin-top:20px; padding:8px 14px; border:none; border-radius:10px; background:#3b82f6; color:white; font-weight:600; cursor:pointer; ">Speichern</button>
+    <h3>Einstellungen (<span id="goalModeLabel">Timer</span>)</h3>
+    <div id="goalList"></div>
+    <button onclick="saveGoals()" style="
+        margin-top:10px;
+        padding:8px 14px;
+        border:none;
+        border-radius:10px;
+        background:#3b82f6;
+        color:white;
+        font-weight:600;
+        cursor:pointer;">
+        Speichern
+    </button>
 </div>
 
-<!-- Navigation -->
 <nav id="bottomNav">
-  <a href="index.html" class="navItem" id="navHome">🏠</a>
-  <a href="dashboard.html" class="navItem" id="navDashboard">📊</a>
-  <a href="analytics.html" class="navItem" id="navAnalytics">📈</a>
+    <a href="index.html" class="navItem">🏠</a>
+    <a href="dashboard.html" class="navItem active">📊</a>
+    <a href="analytics.html" class="navItem">📈</a>
 </nav>
 
+<!-- TAG MODAL -->
+<div id="tagModal" style="
+position:fixed;
+inset:0;
+background:rgba(0,0,0,0.6);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:2000;">
+
+<div style="
+background:#1e293b;
+padding:20px;
+border-radius:16px;
+width:320px;
+max-height:80vh;
+overflow-y:auto;">
+
+<h3 id="tagModalTitle">Tags</h3>
+<div id="tagList" style="margin-top:15px;"></div>
+
+<div style="margin-top:15px;">
+<input id="newTagInput" placeholder="Neuer Tag..." style="
+width:100%;
+padding:8px;
+border-radius:8px;
+border:none;
+background:#0f172a;
+color:white;">
+<button onclick="addTag()" style="
+margin-top:8px;
+width:100%;
+padding:8px;
+border:none;
+border-radius:8px;
+background:#3b82f6;
+color:white;
+font-weight:600;
+cursor:pointer;">
+➕ Hinzufügen
+</button>
+</div>
+
+<button onclick="closeTagModal()" style="
+margin-top:15px;
+width:100%;
+padding:8px;
+border:none;
+border-radius:8px;
+background:#475569;
+color:white;
+cursor:pointer;">
+Schließen
+</button>
+
+</div>
+</div>
+
 <script>
-// =====================
-// Daten
-// =====================
-const TIMER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.timer";
-const COUNTER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.counter";
+const TIMER_URL="https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.timer";
+const COUNTER_URL="https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.counter";
 
-let CATEGORY_LIST = JSON.parse(localStorage.getItem("lifetracker_categories")) || { timer: ["sleep","sport","eating"], counter: ["pushups","pullups"] };
-let GOALS = JSON.parse(localStorage.getItem("lifetracker_goals")) || {};
-let FOLDERS = JSON.parse(localStorage.getItem("lifetracker_folders")) || { timer:{}, counter:{} };
-let categoryTypes = {};
-let currentMode = "timer";
+let GOALS=JSON.parse(localStorage.getItem("lifetracker_goals"))||{};
+let CATEGORY_TAGS=JSON.parse(localStorage.getItem("lifetracker_tags"))||{};
+let categoryTypes={};
+let currentMode="timer";
+let currentView="categories";
 let chart;
+let activeTagCategory=null;
+let selectedTag=""; // für Tag-Chips
 
-// =====================
-// Helfer
-// =====================
-function normalizeArray(data) { if (!data) return []; if (Array.isArray(data)) return data; if (typeof data === "object") return [data]; return []; }
-function isToday(ts) { if (!ts) return false; const d = new Date(ts*1000); const t = new Date(); return d.toDateString()===t.toDateString(); }
-function calculateXP(cat,val) { if(!GOALS[cat]) return 0; return val>=GOALS[cat].value?10:0; }
+function normalizeArray(data){ if(!data) return []; if(Array.isArray(data)) return data; return [data]; }
+function isToday(ts){ if(!ts) return false; const d=new Date(ts*1000); return d.toDateString()===new Date().toDateString(); }
+function calculateXP(cat,val){ if(!GOALS[cat]) return 0; return val>=GOALS[cat]?10:0; }
 
-// =====================
-// Modus wechseln
-// =====================
 function setMode(mode){
-  currentMode=mode;
-  document.getElementById("btnTimer").classList.remove("active");
-  document.getElementById("btnCounter").classList.remove("active");
-  document.getElementById("btn"+mode.charAt(0).toUpperCase()+mode.slice(1)).classList.add("active");
-  document.getElementById("goalModeLabel").textContent = mode==="timer"?"Timer":"Counter";
-  loadData();
+    currentMode=mode;
+    document.getElementById("btnTimer").classList.toggle("active",mode==="timer");
+    document.getElementById("btnCounter").classList.toggle("active",mode==="counter");
+    document.getElementById("goalModeLabel").textContent=mode==="timer"?"Timer":"Counter";
+    loadData();
 }
 
-// =====================
-// Ordner & Überkategorien
-// =====================
-function renderOvercategories(){
-  const folder = document.getElementById("folderSelect").value;
-  const container = document.getElementById("overcategoryContainer");
-  container.innerHTML = "";
-  const overs = FOLDERS[folder]||{};
-  Object.entries(overs).forEach(([overName, subCats])=>{
-    const div = document.createElement("div");
-    div.className="goalRow";
-    const options = CATEGORY_LIST[folder].map(cat=>`<option value="${cat}" ${subCats.includes(cat)?"selected":""}>${cat}</option>`).join("");
-    div.innerHTML = `<strong>${overName}</strong>
-      <select multiple onchange="updateSubcategories('${folder}','${overName}',this)">${options}</select>
-      <button class="deleteBtn" onclick="deleteOvercategory('${folder}','${overName}')">🗑️</button>`;
-    container.appendChild(div);
-  });
+function setView(view){
+    currentView=view;
+    document.getElementById("btnCategories").classList.toggle("active",view==="categories");
+    document.getElementById("btnTags").classList.toggle("active",view==="tags");
+    document.getElementById("tagBar").style.display=view==="categories"?"flex":"none";
+    loadData();
 }
 
-function addOvercategory(){
-  const folder = document.getElementById("folderSelect").value;
-  const name = document.getElementById("newOvercategoryName").value.trim();
-  if(!name) return alert("Name eingeben!");
-  if(!FOLDERS[folder]) FOLDERS[folder]={};
-  if(FOLDERS[folder][name]) return alert("Überkategorie existiert bereits!");
-  FOLDERS[folder][name]=[];
-  localStorage.setItem("lifetracker_folders",JSON.stringify(FOLDERS));
-  document.getElementById("newOvercategoryName").value="";
-  renderOvercategories();
+/* TAG MODAL */
+function editTags(cat){
+    activeTagCategory=cat;
+    document.getElementById("tagModalTitle").textContent="Tags für "+cat;
+    document.getElementById("tagModal").style.display="flex";
+    renderTagList();
 }
-
-function updateSubcategories(folder,overName,sel){
-  const selected = Array.from(sel.selectedOptions).map(o=>o.value);
-  FOLDERS[folder][overName]=selected;
-  localStorage.setItem("lifetracker_folders",JSON.stringify(FOLDERS));
-}
-
-function deleteOvercategory(folder,overName){
-  if(!confirm(`Überkategorie "${overName}" löschen?`)) return;
-  delete FOLDERS[folder][overName];
-  localStorage.setItem("lifetracker_folders",JSON.stringify(FOLDERS));
-  renderOvercategories();
-}
-
-// =====================
-// Ziele
-// =====================
-function renderGoalEditor(){
-  const container = document.getElementById("goalList");
-  container.innerHTML="";
-  Object.entries(GOALS).forEach(([cat,obj])=>{
-    if(obj.type!==currentMode) return;
-    container.innerHTML+=`<div class="goalRow"><span>${cat}</span><input id="goal_${cat}" type="number" min="0" value="${obj.value}"><button class="deleteBtn" onclick="deleteGoal('${cat}')">Löschen</button></div>`;
-  });
-  renderAddGoalDropdown();
-}
-
-function renderAddGoalDropdown(){
-  const dropdown = document.getElementById("addCategory");
-  dropdown.innerHTML="";
-  const list = CATEGORY_LIST[currentMode]||[];
-  if(list.length===0){ dropdown.innerHTML=`<option value="">Keine Kategorien verfügbar</option>`; dropdown.disabled=true; return; }
-  dropdown.disabled=false;
-  list.forEach(cat=>{ dropdown.innerHTML+=`<option value="${cat}">${cat}</option>`; });
-}
-
-function addGoal(){
-  const cat=document.getElementById("addCategory").value;
-  const val=Number(document.getElementById("addValue").value);
-  if(!cat||isNaN(val)||val<=0){ alert("Bitte Kategorie und gültigen Zielwert eingeben."); return; }
-  GOALS[cat]={type:currentMode,value:val};
-  localStorage.setItem("lifetracker_goals",JSON.stringify(GOALS));
-  document.getElementById("addValue").value="";
-  loadData();
-}
-
-function deleteGoal(cat){
-  delete GOALS[cat];
-  localStorage.setItem("lifetracker_goals",JSON.stringify(GOALS));
-  loadData();
-}
-
-function saveGoals(){
-  Object.keys(GOALS).forEach(cat=>{
-    if(GOALS[cat].type!==currentMode) return;
-    const val=Number(document.getElementById("goal_"+cat).value);
-    if(!isNaN(val)&&val>=0) GOALS[cat].value=val;
-  });
-  localStorage.setItem("lifetracker_goals",JSON.stringify(GOALS));
-  alert("Ziele gespeichert!");
-  loadData();
-}
-
-// =====================
-// Daten laden + Chart
-// =====================
-async function loadData(){
-  setLoading(true);
-  try{
-    const timerResp = await fetch(TIMER_URL);
-    const counterResp = await fetch(COUNTER_URL);
-    const timerData = normalizeArray(await timerResp.json());
-    const counterData = normalizeArray(await counterResp.json());
-    let totals={};
-    // Kategorien sammeln
-    timerData.forEach(e=>{ if(!CATEGORY_LIST.timer.includes(e.category)) CATEGORY_LIST.timer.push(e.category); });
-    counterData.forEach(e=>{ if(!CATEGORY_LIST.counter.includes(e.category)) CATEGORY_LIST.counter.push(e.category); });
-    localStorage.setItem("lifetracker_categories",JSON.stringify(CATEGORY_LIST));
-
-    // Timer summieren
-    if(currentMode==="timer"){
-      timerData.forEach(e=>{ if(!isToday(e.start_ts)) return; totals[e.category]=(totals[e.category]||0)+Math.floor(e.duration_s/60); });
-    }
-    // Counter summieren
-    if(currentMode==="counter"){
-      counterData.forEach(e=>{ if(!isToday(e.timestamp)) return; totals[e.category]=(totals[e.category]||0)+e.value; });
-    }
-
-    // Überkategorien summieren
-    if(FOLDERS[currentMode]){
-      Object.entries(FOLDERS[currentMode]).forEach(([over,subs])=>{
-        totals[over]=subs.reduce((sum,sub)=>sum+(totals[sub]||0),0);
-      });
-    }
-
-    // XP
-    let xpToday=0;
-    let xpTotal=Number(localStorage.getItem("lifetracker_xp_total"))||0;
-    Object.entries(totals).forEach(([cat,val])=>{
-      const xp=calculateXP(cat,val);
-      xpToday+=xp; xpTotal+=xp;
+function closeTagModal(){ document.getElementById("tagModal").style.display="none"; }
+function renderTagList(){
+    const container=document.getElementById("tagList");
+    container.innerHTML="";
+    const tags=CATEGORY_TAGS[activeTagCategory]||[];
+    if(tags.length===0){ container.innerHTML="<p style='opacity:0.6;'>Keine Tags vorhanden</p>"; return; }
+    tags.forEach((tag,i)=>{
+        container.innerHTML+=`
+        <div style="display:flex;justify-content:space-between;
+        align-items:center;background:#0f172a;padding:8px;
+        border-radius:8px;margin-bottom:8px;">
+        <span>${tag}</span>
+        <button onclick="removeTag(${i})"
+        style="background:#ef4444;border:none;padding:4px 8px;
+        border-radius:6px;color:white;cursor:pointer;">✕</button>
+        </div>`;
     });
-    localStorage.setItem("lifetracker_xp_total",xpTotal);
-    document.getElementById("xpToday").textContent=xpToday;
-    document.getElementById("xpTotal").textContent=xpTotal;
-
-    renderChart(totals);
-    renderGoalEditor();
-    renderOvercategories();
-  } catch(err){ console.error(err); alert("Fehler: "+err); }
-  setLoading(false);
+}
+function addTag(){
+    const input=document.getElementById("newTagInput");
+    const val=input.value.trim();
+    if(!val) return;
+    if(!CATEGORY_TAGS[activeTagCategory]) CATEGORY_TAGS[activeTagCategory]=[];
+    if(!CATEGORY_TAGS[activeTagCategory].includes(val)) CATEGORY_TAGS[activeTagCategory].push(val);
+    localStorage.setItem("lifetracker_tags",JSON.stringify(CATEGORY_TAGS));
+    input.value="";
+    renderTagList();
+}
+function removeTag(i){
+    CATEGORY_TAGS[activeTagCategory].splice(i,1);
+    localStorage.setItem("lifetracker_tags",JSON.stringify(CATEGORY_TAGS));
+    renderTagList();
 }
 
-function setLoading(is){ const btn=document.getElementById("refreshBtn"); btn.disabled=is; btn.innerHTML=is?"⏳ Lädt…":"🔄 Aktualisieren"; btn.style.opacity=is?0.6:1; }
+/* GOALS */
+function renderGoalEditor(){
+    const container=document.getElementById("goalList");
+    container.innerHTML="";
+    Object.entries(GOALS).forEach(([cat,goal])=>{
+        if(categoryTypes[cat]!==currentMode) return;
+        container.innerHTML+=`
+        <div class="goalRow">
+        <span>${cat}</span>
+        <input id="goal_${cat}" type="number" value="${goal}">
+        <button onclick="editTags('${cat}')"
+        style="padding:6px 10px;border:none;border-radius:8px;
+        background:#475569;color:white;cursor:pointer;">
+        Tags</button>
+        </div>`;
+    });
+}
+function saveGoals(){
+    Object.keys(GOALS).forEach(cat=>{
+        if(categoryTypes[cat]!==currentMode) return;
+        const val=Number(document.getElementById("goal_"+cat).value);
+        if(!isNaN(val)) GOALS[cat]=val;
+    });
+    localStorage.setItem("lifetracker_goals",JSON.stringify(GOALS));
+    loadData();
+}
+
+/* TAG BAR */
+function renderTagBar(){
+    const container=document.getElementById("tagBar");
+    container.innerHTML="";
+    const allTags=new Set();
+    Object.values(CATEGORY_TAGS).forEach(tags=>tags.forEach(t=>allTags.add(t)));
+
+    const allChip=document.createElement("div");
+    allChip.textContent="Alle";
+    allChip.className="tag-chip "+(selectedTag===""?"active":"");
+    allChip.onclick=()=>{ selectedTag=""; renderTagBar(); loadData(); };
+    container.appendChild(allChip);
+
+    allTags.forEach(tag=>{
+        const chip=document.createElement("div");
+        chip.textContent=tag;
+        chip.className="tag-chip "+(selectedTag===tag?"active":"");
+        chip.onclick=()=>{ selectedTag=tag; renderTagBar(); loadData(); };
+        container.appendChild(chip);
+    });
+}
+
+/* LOAD DATA */
+async function loadData(){
+    const tRes=await fetch(TIMER_URL);
+    const cRes=await fetch(COUNTER_URL);
+    const timerData=normalizeArray(await tRes.json());
+    const counterData=normalizeArray(await cRes.json());
+    const totals={};
+
+    timerData.forEach(e=>categoryTypes[e.category]="timer");
+    counterData.forEach(e=>categoryTypes[e.category]="counter");
+
+    Object.keys(categoryTypes).forEach(cat=>{
+        if(!GOALS[cat]) GOALS[cat]=categoryTypes[cat]==="timer"?60:10;
+    });
+
+    renderGoalEditor();
+    renderTagBar();
+
+    if(currentMode==="timer"){
+        timerData.forEach(e=>{
+            if(!isToday(e.start_ts)) return;
+            totals[e.category]=(totals[e.category]||0)+Math.floor(e.duration_s/60);
+        });
+    }
+
+    if(currentMode==="counter"){
+        counterData.forEach(e=>{
+            if(!isToday(e.timestamp)) return;
+            totals[e.category]=(totals[e.category]||0)+e.value;
+        });
+    }
+
+    /* TAG VIEW */
+    if(currentView==="tags"){
+        const tagTotals={};
+        Object.entries(totals).forEach(([cat,val])=>{
+            const tags=CATEGORY_TAGS[cat]||[];
+            tags.forEach(tag=>{
+                tagTotals[tag]=(tagTotals[tag]||0)+val;
+            });
+        });
+        renderChart(tagTotals);
+        return;
+    }
+
+    /* CATEGORY VIEW + TAG FILTER */
+    const categoriesOfMode = Object.keys(categoryTypes).filter(cat=>categoryTypes[cat]===currentMode);
+    const filteredCategories = selectedTag ? categoriesOfMode.filter(cat => (CATEGORY_TAGS[cat]||[]).includes(selectedTag)) : categoriesOfMode;
+    const displayData = {};
+    filteredCategories.forEach(cat=>displayData[cat]=totals[cat]||0);
+
+    let xp=0;
+    Object.entries(displayData).forEach(([cat,val])=>xp+=calculateXP(cat,val));
+    document.getElementById("xpToday").textContent=xp;
+
+    renderChart(displayData);
+}
 
 function renderChart(data){
-  const ctx=document.getElementById("todayChart");
-  if(chart) chart.destroy();
-  const labels=Object.keys(data);
-  const values=Object.values(data);
-  const goalLines=labels.map(cat=>GOALS[cat]?.value??null);
-  chart=new Chart(ctx,{ type:"bar", data:{ labels, datasets:[
-    { label:"Heute", data:values, backgroundColor: labels.map(cat=>GOALS[cat]&&data[cat]>=GOALS[cat].value?"#22c55e":"#3b82f6") },
-    { label:"Ziel", data:goalLines, type:"line", borderColor:"#facc15", borderWidth:2, pointRadius:0 }
-  ]}, options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }});
+    const ctx=document.getElementById("todayChart");
+    if(chart) chart.destroy();
+    chart=new Chart(ctx,{
+        type:"bar",
+        data:{labels:Object.keys(data),datasets:[{label:currentView==="tags"?"Tag Summe":"Heute",data:Object.values(data),backgroundColor:"#3b82f6"}]},
+        options:{responsive:true,scales:{y:{beginAtZero:true}}}
+    });
 }
 
-// =====================
-// Init
-// =====================
 loadData();
-
-// Navigation Highlight
-const page=location.pathname.split("/").pop();
-if(page.includes("index")) document.getElementById("navHome").classList.add("active");
-if(page.includes("dashboard")) document.getElementById("navDashboard").classList.add("active");
-if(page.includes("analytics")) document.getElementById("navAnalytics").classList.add("active");
 </script>
+
 </body>
 </html>
