@@ -4,359 +4,286 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LifeTracker – Dashboard Heute</title>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-    body {
-        font-family: Inter, sans-serif;
-        background: #0f172a;
-        color: #f1f5f9;
-        padding: 20px;
-        padding-bottom: 120px;
-    }
-
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    #xpBox {
-        background: rgba(255,255,255,0.06);
-        padding: 15px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        text-align: center;
-        font-size: 18px;
-        font-weight: 600;
-    }
-
-    #chartContainer {
-        background: rgba(255,255,255,0.06);
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-    }
-
-    #goalEditor {
-        background: rgba(255,255,255,0.06);
-        padding: 20px;
-        border-radius: 12px;
-        margin-top: 30px;
-    }
-
-    .goalRow {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-    }
-
-    .goalRow input {
-        width: 120px;
-        padding: 6px;
-        border-radius: 8px;
-        border: none;
-        background: #1e293b;
-        color: white;
-        text-align: right;
-    }
-
-    #bottomNav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 60px;
-        background: rgba(255,255,255,0.06);
-        backdrop-filter: blur(20px);
-        border-top: 1px solid rgba(255,255,255,0.1);
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        z-index: 999;
-    }
-
-    .navItem {
-        color: #f1f5f9;
-        font-size: 26px;
-        text-decoration: none;
-        opacity: 0.6;
-        transition: 0.2s;
-    }
-
-    .navItem.active {
-        opacity: 1;
-        transform: translateY(-4px);
-    }
-
-    .modeBtn {
-        padding:8px 14px;
-        margin: 0 4px;
-        border-radius:10px;
-        border:none;
-        cursor:pointer;
-        font-weight:600;
-        background:#1e293b;
-        color:white;
-        opacity:0.6;
-        transition:0.2s;
-    }
-    .modeBtn.active {
-        opacity:1;
-        background:#3b82f6;
-    }
+body { font-family: Inter, sans-serif; background: #0f172a; color: #f1f5f9; padding: 20px; padding-bottom: 120px; }
+h1 { text-align: center; margin-bottom: 20px; }
+#xpBox { background: rgba(255,255,255,0.06); padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align: center; font-size: 18px; font-weight: 600; }
+#chartContainer { background: rgba(255,255,255,0.06); padding: 20px; border-radius: 12px; margin-bottom: 30px; }
+#goalEditor, #folderManager { background: rgba(255,255,255,0.06); padding: 20px; border-radius: 12px; margin-bottom: 30px; }
+.goalRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.goalRow select[multiple] { height: 80px; width: 150px; }
+.goalRow input { width: 120px; padding: 6px; border-radius: 8px; border: none; background: #1e293b; color: white; text-align: right; }
+.deleteBtn { background: #ef4444; border: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; color: white; font-weight: 600; }
+.addSection { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+select, input[type="number"], input[type="text"] { width: 100%; padding: 8px; border-radius: 8px; border: none; background: #1e293b; color: white; margin-bottom: 10px; }
+#bottomNav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-around; align-items: center; z-index: 999; }
+.navItem { color: #f1f5f9; font-size: 26px; text-decoration: none; opacity: 0.6; transition: 0.2s; }
+.navItem.active { opacity: 1; transform: translateY(-4px); }
+.modeBtn { padding:8px 14px; margin: 0 4px; border-radius:10px; border:none; cursor:pointer; font-weight:600; background:#1e293b; color:white; opacity:0.6; transition:0.2s; }
+.modeBtn.active { opacity:1; background:#3b82f6; }
 </style>
 </head>
-
 <body>
-
 <h1>📊 Dashboard – Heute</h1>
 
+<!-- Refresh + Mode -->
 <div style="text-align:center; margin-bottom:20px;">
-    <button id="refreshBtn" onclick="loadData()" style="
-        padding:10px 16px;
-        border-radius:12px;
-        border:none;
-        cursor:pointer;
-        font-weight:600;
-        background:#3b82f6;
-        color:white;
-    ">
-        🔄 Aktualisieren
-    </button>
+  <button id="refreshBtn" onclick="loadData()" style=" padding:10px 16px; border-radius:12px; border:none; cursor:pointer; font-weight:600; background:#3b82f6; color:white; "> 🔄 Aktualisieren </button>
 </div>
-
 <div style="text-align:center; margin-bottom:20px;">
-    <button onclick="setMode('timer')" id="btnTimer" class="modeBtn active">Timer</button>
-    <button onclick="setMode('counter')" id="btnCounter" class="modeBtn">Counter</button>
+  <button onclick="setMode('timer')" id="btnTimer" class="modeBtn active">Timer</button>
+  <button onclick="setMode('counter')" id="btnCounter" class="modeBtn">Counter</button>
 </div>
 
-<div id="xpBox">
-    XP heute: <span id="xpToday">0</span>
-</div>
+<!-- XP Anzeige -->
+<div id="xpBox"> XP heute: <span id="xpToday">0</span> | Gesamt: <span id="xpTotal">0</span> </div>
 
+<!-- Chart -->
 <div id="chartContainer">
-    <canvas id="todayChart"></canvas>
+  <canvas id="todayChart"></canvas>
 </div>
 
-<!-- 🎯 Ziel-Einstellungen -->
+<!-- Ordnerverwaltung -->
+<div id="folderManager">
+  <h2>📂 Ordner & Kategorien</h2>
+  <div>
+    <label>Ordner wählen:</label>
+    <select id="folderSelect" onchange="renderOvercategories()">
+      <option value="timer">Timer</option>
+      <option value="counter">Counter</option>
+    </select>
+  </div>
+  <div id="overcategoryContainer"></div>
+  <div class="addSection">
+    <h4>Neue Überkategorie hinzufügen</h4>
+    <input id="newOvercategoryName" placeholder="Name">
+    <button onclick="addOvercategory()">+ Hinzufügen</button>
+  </div>
+</div>
+
+<!-- 🎯 Ziele -->
 <div id="goalEditor">
-    <h3>Ziele einstellen (<span id="goalModeLabel">Timer</span>)</h3>
-    <div id="goalList"></div>
-
-    <button onclick="saveGoals()" style="
-        margin-top:10px; padding:8px 14px; border:none; border-radius:10px;
-        background:#3b82f6; color:white; font-weight:600; cursor:pointer;
-    ">Speichern</button>
+  <h3>Ziele einstellen (<span id="goalModeLabel">Timer</span>)</h3>
+  <div id="goalList"></div>
+  <div class="addSection">
+    <h4>Neues Ziel hinzufügen</h4>
+    <label>Kategorie auswählen:</label>
+    <select id="addCategory"></select>
+    <label>Zielwert:</label>
+    <input id="addValue" type="number" min="0" placeholder="Minuten oder Anzahl">
+    <button onclick="addGoal()" style=" margin-top:10px; padding:8px 14px; border:none; border-radius:10px; background:#3b82f6; color:white; font-weight:600; cursor:pointer; ">Hinzufügen</button>
+  </div>
+  <button onclick="saveGoals()" style=" margin-top:20px; padding:8px 14px; border:none; border-radius:10px; background:#3b82f6; color:white; font-weight:600; cursor:pointer; ">Speichern</button>
 </div>
 
+<!-- Navigation -->
 <nav id="bottomNav">
-    <a href="index.html" class="navItem" id="navHome">🏠</a>
-    <a href="dashboard.html" class="navItem" id="navDashboard">📊</a>
-    <a href="analytics.html" class="navItem" id="navAnalytics">📈</a>
+  <a href="index.html" class="navItem" id="navHome">🏠</a>
+  <a href="dashboard.html" class="navItem" id="navDashboard">📊</a>
+  <a href="analytics.html" class="navItem" id="navAnalytics">📈</a>
 </nav>
 
 <script>
-/* Navigation */
-const page = location.pathname.split("/").pop();
-if (page.includes("index")) document.getElementById("navHome").classList.add("active");
-if (page.includes("dashboard")) document.getElementById("navDashboard").classList.add("active");
-if (page.includes("analytics")) document.getElementById("navAnalytics").classList.add("active");
-
-/* URLs */
+// =====================
+// Daten
+// =====================
 const TIMER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.timer";
 const COUNTER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.counter";
 
-/* Goals */
+let CATEGORY_LIST = JSON.parse(localStorage.getItem("lifetracker_categories")) || { timer: ["sleep","sport","eating"], counter: ["pushups","pullups"] };
 let GOALS = JSON.parse(localStorage.getItem("lifetracker_goals")) || {};
+let FOLDERS = JSON.parse(localStorage.getItem("lifetracker_folders")) || { timer:{}, counter:{} };
 let categoryTypes = {};
 let currentMode = "timer";
 let chart;
 
-/* Helpers */
-function normalizeArray(data) {
-    if (!data) return [];
-    if (Array.isArray(data)) return data;
-    if (typeof data === "object") return [data];
-    return [];
+// =====================
+// Helfer
+// =====================
+function normalizeArray(data) { if (!data) return []; if (Array.isArray(data)) return data; if (typeof data === "object") return [data]; return []; }
+function isToday(ts) { if (!ts) return false; const d = new Date(ts*1000); const t = new Date(); return d.toDateString()===t.toDateString(); }
+function calculateXP(cat,val) { if(!GOALS[cat]) return 0; return val>=GOALS[cat].value?10:0; }
+
+// =====================
+// Modus wechseln
+// =====================
+function setMode(mode){
+  currentMode=mode;
+  document.getElementById("btnTimer").classList.remove("active");
+  document.getElementById("btnCounter").classList.remove("active");
+  document.getElementById("btn"+mode.charAt(0).toUpperCase()+mode.slice(1)).classList.add("active");
+  document.getElementById("goalModeLabel").textContent = mode==="timer"?"Timer":"Counter";
+  loadData();
 }
 
-function isToday(ts) {
-    if (!ts) return false;
-    const entryDate = new Date(ts * 1000);
-    const today = new Date();
-    return entryDate.toDateString() === today.toDateString();
+// =====================
+// Ordner & Überkategorien
+// =====================
+function renderOvercategories(){
+  const folder = document.getElementById("folderSelect").value;
+  const container = document.getElementById("overcategoryContainer");
+  container.innerHTML = "";
+  const overs = FOLDERS[folder]||{};
+  Object.entries(overs).forEach(([overName, subCats])=>{
+    const div = document.createElement("div");
+    div.className="goalRow";
+    const options = CATEGORY_LIST[folder].map(cat=>`<option value="${cat}" ${subCats.includes(cat)?"selected":""}>${cat}</option>`).join("");
+    div.innerHTML = `<strong>${overName}</strong>
+      <select multiple onchange="updateSubcategories('${folder}','${overName}',this)">${options}</select>
+      <button class="deleteBtn" onclick="deleteOvercategory('${folder}','${overName}')">🗑️</button>`;
+    container.appendChild(div);
+  });
 }
 
-function calculateXP(category, value) {
-    if (!GOALS[category]) return 0;
-    return value >= GOALS[category] ? 10 : 0;
+function addOvercategory(){
+  const folder = document.getElementById("folderSelect").value;
+  const name = document.getElementById("newOvercategoryName").value.trim();
+  if(!name) return alert("Name eingeben!");
+  if(!FOLDERS[folder]) FOLDERS[folder]={};
+  if(FOLDERS[folder][name]) return alert("Überkategorie existiert bereits!");
+  FOLDERS[folder][name]=[];
+  localStorage.setItem("lifetracker_folders",JSON.stringify(FOLDERS));
+  document.getElementById("newOvercategoryName").value="";
+  renderOvercategories();
 }
 
-function setMode(mode) {
-    currentMode = mode;
-
-    document.getElementById("btnTimer").classList.remove("active");
-    document.getElementById("btnCounter").classList.remove("active");
-
-    document.getElementById("btn" + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add("active");
-
-    document.getElementById("goalModeLabel").textContent = mode === "timer" ? "Timer" : "Counter";
-
-    loadData();
+function updateSubcategories(folder,overName,sel){
+  const selected = Array.from(sel.selectedOptions).map(o=>o.value);
+  FOLDERS[folder][overName]=selected;
+  localStorage.setItem("lifetracker_folders",JSON.stringify(FOLDERS));
 }
 
-function setLoading(isLoading) {
-    const btn = document.getElementById("refreshBtn");
-    btn.disabled = isLoading;
-    btn.innerHTML = isLoading ? "⏳ Lädt…" : "🔄 Aktualisieren";
-    btn.style.opacity = isLoading ? "0.6" : "1";
+function deleteOvercategory(folder,overName){
+  if(!confirm(`Überkategorie "${overName}" löschen?`)) return;
+  delete FOLDERS[folder][overName];
+  localStorage.setItem("lifetracker_folders",JSON.stringify(FOLDERS));
+  renderOvercategories();
 }
 
-/* Load Data */
-async function loadData() {
-    setLoading(true);
+// =====================
+// Ziele
+// =====================
+function renderGoalEditor(){
+  const container = document.getElementById("goalList");
+  container.innerHTML="";
+  Object.entries(GOALS).forEach(([cat,obj])=>{
+    if(obj.type!==currentMode) return;
+    container.innerHTML+=`<div class="goalRow"><span>${cat}</span><input id="goal_${cat}" type="number" min="0" value="${obj.value}"><button class="deleteBtn" onclick="deleteGoal('${cat}')">Löschen</button></div>`;
+  });
+  renderAddGoalDropdown();
+}
 
-    try {
-        const timerResponse = await fetch(TIMER_URL);
-        const counterResponse = await fetch(COUNTER_URL);
+function renderAddGoalDropdown(){
+  const dropdown = document.getElementById("addCategory");
+  dropdown.innerHTML="";
+  const list = CATEGORY_LIST[currentMode]||[];
+  if(list.length===0){ dropdown.innerHTML=`<option value="">Keine Kategorien verfügbar</option>`; dropdown.disabled=true; return; }
+  dropdown.disabled=false;
+  list.forEach(cat=>{ dropdown.innerHTML+=`<option value="${cat}">${cat}</option>`; });
+}
 
-        const timerRaw = await timerResponse.json();
-        const counterRaw = await counterResponse.json();
+function addGoal(){
+  const cat=document.getElementById("addCategory").value;
+  const val=Number(document.getElementById("addValue").value);
+  if(!cat||isNaN(val)||val<=0){ alert("Bitte Kategorie und gültigen Zielwert eingeben."); return; }
+  GOALS[cat]={type:currentMode,value:val};
+  localStorage.setItem("lifetracker_goals",JSON.stringify(GOALS));
+  document.getElementById("addValue").value="";
+  loadData();
+}
 
-        const timerData = normalizeArray(timerRaw);
-        const counterData = normalizeArray(counterRaw);
+function deleteGoal(cat){
+  delete GOALS[cat];
+  localStorage.setItem("lifetracker_goals",JSON.stringify(GOALS));
+  loadData();
+}
 
-        const totals = {};
+function saveGoals(){
+  Object.keys(GOALS).forEach(cat=>{
+    if(GOALS[cat].type!==currentMode) return;
+    const val=Number(document.getElementById("goal_"+cat).value);
+    if(!isNaN(val)&&val>=0) GOALS[cat].value=val;
+  });
+  localStorage.setItem("lifetracker_goals",JSON.stringify(GOALS));
+  alert("Ziele gespeichert!");
+  loadData();
+}
 
-        /* Detect category types */
-        timerData.forEach(e => categoryTypes[e.category] = "timer");
-        counterData.forEach(e => categoryTypes[e.category] = "counter");
+// =====================
+// Daten laden + Chart
+// =====================
+async function loadData(){
+  setLoading(true);
+  try{
+    const timerResp = await fetch(TIMER_URL);
+    const counterResp = await fetch(COUNTER_URL);
+    const timerData = normalizeArray(await timerResp.json());
+    const counterData = normalizeArray(await counterResp.json());
+    let totals={};
+    // Kategorien sammeln
+    timerData.forEach(e=>{ if(!CATEGORY_LIST.timer.includes(e.category)) CATEGORY_LIST.timer.push(e.category); });
+    counterData.forEach(e=>{ if(!CATEGORY_LIST.counter.includes(e.category)) CATEGORY_LIST.counter.push(e.category); });
+    localStorage.setItem("lifetracker_categories",JSON.stringify(CATEGORY_LIST));
 
-        /* Default goals */
-        Object.keys(categoryTypes).forEach(cat => {
-            if (!GOALS[cat]) {
-                GOALS[cat] = categoryTypes[cat] === "timer" ? 60 : 10;
-            }
-        });
-
-        renderGoalEditor();
-
-        /* Timer totals */
-        if (currentMode === "timer") {
-            timerData.forEach(entry => {
-                if (!isToday(entry.start_ts)) return;
-                totals[entry.category] = (totals[entry.category] || 0) + Math.floor(entry.duration_s / 60);
-            });
-        }
-
-        /* Counter totals */
-        if (currentMode === "counter") {
-            counterData.forEach(entry => {
-                if (!isToday(entry.timestamp)) return;
-                totals[entry.category] = (totals[entry.category] || 0) + entry.value;
-            });
-        }
-
-        /* XP */
-        let xpToday = 0;
-        Object.entries(totals).forEach(([cat, val]) => {
-            xpToday += calculateXP(cat, val);
-        });
-
-        document.getElementById("xpToday").textContent = xpToday;
-
-        renderChart(totals);
-
-    } catch (err) {
-        console.error("Fehler:", err);
-        alert("Fehler beim Laden: " + err);
+    // Timer summieren
+    if(currentMode==="timer"){
+      timerData.forEach(e=>{ if(!isToday(e.start_ts)) return; totals[e.category]=(totals[e.category]||0)+Math.floor(e.duration_s/60); });
+    }
+    // Counter summieren
+    if(currentMode==="counter"){
+      counterData.forEach(e=>{ if(!isToday(e.timestamp)) return; totals[e.category]=(totals[e.category]||0)+e.value; });
     }
 
-    setLoading(false);
-}
+    // Überkategorien summieren
+    if(FOLDERS[currentMode]){
+      Object.entries(FOLDERS[currentMode]).forEach(([over,subs])=>{
+        totals[over]=subs.reduce((sum,sub)=>sum+(totals[sub]||0),0);
+      });
+    }
 
-/* Chart */
-function renderChart(data) {
-    const ctx = document.getElementById("todayChart");
-
-    if (chart) chart.destroy();
-
-    const labels = Object.keys(data);
-    const values = Object.values(data);
-    const goalLines = labels.map(cat => GOALS[cat] || null);
-
-    chart = new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: "Heute",
-                    data: values,
-                    backgroundColor: "#3b82f6"
-                },
-                {
-                    label: "Ziel",
-                    data: goalLines,
-                    type: "line",
-                    borderColor: "#22c55e",
-                    borderWidth: 2,
-                    pointRadius: 0
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
+    // XP
+    let xpToday=0;
+    let xpTotal=Number(localStorage.getItem("lifetracker_xp_total"))||0;
+    Object.entries(totals).forEach(([cat,val])=>{
+      const xp=calculateXP(cat,val);
+      xpToday+=xp; xpTotal+=xp;
     });
+    localStorage.setItem("lifetracker_xp_total",xpTotal);
+    document.getElementById("xpToday").textContent=xpToday;
+    document.getElementById("xpTotal").textContent=xpTotal;
+
+    renderChart(totals);
+    renderGoalEditor();
+    renderOvercategories();
+  } catch(err){ console.error(err); alert("Fehler: "+err); }
+  setLoading(false);
 }
 
-/* Goal Editor */
-function renderGoalEditor() {
-    const container = document.getElementById("goalList");
-    container.innerHTML = "";
+function setLoading(is){ const btn=document.getElementById("refreshBtn"); btn.disabled=is; btn.innerHTML=is?"⏳ Lädt…":"🔄 Aktualisieren"; btn.style.opacity=is?0.6:1; }
 
-    Object.entries(GOALS).forEach(([cat, goal]) => {
-        if (categoryTypes[cat] !== currentMode) return;
-
-        container.innerHTML += `
-            <div class="goalRow">
-                <span>${cat}</span>
-                <input 
-                    id="goal_${cat}" 
-                    type="number" 
-                    min="0" 
-                    value="${goal}"
-                    placeholder="${currentMode === 'timer' ? 'Minuten' : 'Anzahl'}"
-                >
-            </div>
-        `;
-    });
+function renderChart(data){
+  const ctx=document.getElementById("todayChart");
+  if(chart) chart.destroy();
+  const labels=Object.keys(data);
+  const values=Object.values(data);
+  const goalLines=labels.map(cat=>GOALS[cat]?.value??null);
+  chart=new Chart(ctx,{ type:"bar", data:{ labels, datasets:[
+    { label:"Heute", data:values, backgroundColor: labels.map(cat=>GOALS[cat]&&data[cat]>=GOALS[cat].value?"#22c55e":"#3b82f6") },
+    { label:"Ziel", data:goalLines, type:"line", borderColor:"#facc15", borderWidth:2, pointRadius:0 }
+  ]}, options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }});
 }
 
-function saveGoals() {
-    Object.keys(GOALS).forEach(cat => {
-        if (categoryTypes[cat] !== currentMode) return;
-
-        const val = Number(document.getElementById("goal_" + cat).value);
-        if (!isNaN(val) && val >= 0) {
-            GOALS[cat] = val;
-        }
-    });
-
-    localStorage.setItem("lifetracker_goals", JSON.stringify(GOALS));
-
-    alert("Ziele gespeichert!");
-    loadData();
-}
-
+// =====================
+// Init
+// =====================
 loadData();
-</script>
 
+// Navigation Highlight
+const page=location.pathname.split("/").pop();
+if(page.includes("index")) document.getElementById("navHome").classList.add("active");
+if(page.includes("dashboard")) document.getElementById("navDashboard").classList.add("active");
+if(page.includes("analytics")) document.getElementById("navAnalytics").classList.add("active");
+</script>
 </body>
 </html>
