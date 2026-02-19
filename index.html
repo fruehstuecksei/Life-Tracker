@@ -1,192 +1,413 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Send to n8n</title>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      min-height: 100vh;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #1a1a2e;
-      color: #eee;
-    }
-    .card {
-      background: #16213e;
-      padding: 2rem;
-      border-radius: 12px;
-      text-align: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    }
-    h1 {
-      margin: 0 0 1.5rem;
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-    button {
-      font-size: 1rem;
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 8px;
-      background: #0f3460;
-      color: #fff;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button:hover {
-      background: #1a4a7a;
-    }
-    button:active {
-      transform: scale(0.98);
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    .status {
-      margin-top: 1rem;
-      min-height: 1.5em;
-      font-size: 0.875rem;
-      color: #94a3b8;
-    }
-    .status.success { color: #86efac; }
-    .status.error { color: #fca5a5; }
-    .hint {
-      margin-top: 1.5rem;
-      font-size: 0.8rem;
-      color: #64748b;
-    }
-    .hint a { color: #7dd3fc; }
-    .divider {
-      margin: 2rem 0;
-      border: none;
-      border-top: 1px solid #334155;
-    }
-    .subtitle {
-      margin: -0.5rem 0 1rem;
-      font-size: 0.8rem;
-      color: #94a3b8;
-    }
-    .buttonRow {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LifeTracker</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --bg: #0f172a;
+    --card: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.1);
+    --primary: #3b82f6;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --text: #f1f5f9;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(circle at top, #1e293b, #0f172a);
+    color: var(--text);
+    padding: 20px;
+    padding-bottom: 100px; /* Platz für Menü */
+}
+
+h1 {
+    text-align: center;
+    font-weight: 800;
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+.section {
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    animation: fadeIn 0.4s ease;
+}
+
+h2 {
+    margin-top: 0;
+    font-weight: 600;
+}
+
+button {
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    background: var(--primary);
+    color: white;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(59,130,246,0.4);
+}
+
+button.stop { background: var(--danger); }
+button.counter { background: var(--success); }
+
+input {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: white;
+    width: 120px;
+}
+
+.category-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 10px 0;
+}
+
+.status {
+    font-weight: 600;
+    margin-left: 10px;
+}
+
+.running { color: var(--success); }
+.stopped { color: var(--danger); }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Bottom Navigation */
+#bottomNav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 999;
+}
+
+.navItem {
+    color: #f1f5f9;
+    font-size: 26px;
+    text-decoration: none;
+    opacity: 0.6;
+    transition: 0.2s;
+}
+
+.navItem.active {
+    opacity: 1;
+    transform: translateY(-4px);
+}
+</style>
 </head>
+
 <body>
-  <div class="card">
-    <h1>Send message to n8n</h1>
-    <button type="button" id="sendBtn">Send message</button>
-    <p class="status" id="status" aria-live="polite"></p>
-    <p class="hint">
-      If nothing happens in n8n, try
-      <a href="#" id="openTabLink">opening the webhook in a new tab</a>
-      to confirm the URL works.
-    </p>
 
-    <hr class="divider">
+<h1>🚀 LifeTracker</h1>
 
-    <h1>Timer</h1>
-    <p class="subtitle">Start and stop a timer in n8n (see N8N_TIMER_WORKFLOW.md)</p>
-    <div class="buttonRow">
-      <button type="button" id="timerStartBtn">Start timer</button>
-      <button type="button" id="timerStopBtn">Stop timer</button>
-    </div>
-    <p class="status" id="timerStatus" aria-live="polite"></p>
-  </div>
+<!-- PIN Schutz -->
+<div id="pinOverlay" style="
+position:fixed; inset:0; background:#0f172a; 
+display:flex; flex-direction:column; 
+justify-content:center; align-items:center; z-index:9999;">
+<h2>🔒 LifeTracker</h2>
+<input id="pinInput" type="password" placeholder="PIN eingeben" style="margin:10px;">
+<button onclick="checkPin()">Login</button>
+</div>
 
-  <script>
-    const WEBHOOK_URL = 'https://n8n.srv1377935.hstgr.cloud/webhook/60cf23fd-b6fd-4e7d-86ca-3915abfff78d';
-    const FIXED_MESSAGE = 'Button clicked';
+<div class="section">
+    <h2>Modus</h2>
+    <select id="modeSwitcher" onchange="switchMode()">
+        <option value="test">Test</option>
+        <option value="prod">Production</option>
+    </select>
+</div>
 
-    // Paste your timer workflow Production URL here (from the Webhook node)
-    const TIMER_WEBHOOK_URL = 'https://n8n.srv1377935.hstgr.cloud/webhook/60cf23fd-b6fd-4e7d-86ca-3915abfff78d';
+<div class="section">
+    <h2>⏱ Timer</h2>
+    <div id="timerContainer"></div>
 
-    function getUrl() {
-      return WEBHOOK_URL + '?message=' + encodeURIComponent(FIXED_MESSAGE);
+    <input id="newTimerCategory" type="text" placeholder="Neue Kategorie">
+    <button onclick="addTimerCategory()">+ Hinzufügen</button>
+</div>
+
+<div class="section">
+    <h2>🏋 Counter</h2>
+    <div id="counterContainer"></div>
+
+    <input id="newCounterCategory" type="text" placeholder="Neue Kategorie">
+    <button onclick="addCounterCategory()">+ Hinzufügen</button>
+</div>
+
+<div class="section">
+<h2>📊 Statistik (lokal)</h2>
+<div id="stats"></div>
+</div>
+
+<!-- Bottom Navigation -->
+<nav id="bottomNav">
+    <a href="index.html" class="navItem" id="navHome">🏠</a>
+    <a href="dashboard.html" class="navItem" id="navDashboard">📊</a>
+    <a href="analytics.html" class="navItem" id="navAnalytics">📈</a>
+</nav>
+
+<script>
+const APP_PIN = "1234"; // PIN für Zugriff
+
+function checkPin() {
+    const value = document.getElementById("pinInput").value;
+    if (value === APP_PIN) {
+        document.getElementById("pinOverlay").style.display = "none";
+    } else {
+        alert("Falscher PIN");
     }
+}
 
-    function getTimerUrl(action) {
-      const sep = TIMER_WEBHOOK_URL.includes('?') ? '&' : '?';
-      return TIMER_WEBHOOK_URL + sep + 'action=' + encodeURIComponent(action);
-    }
+// URLs
+const URLS = {
+    test: "https://n8n.srv1377935.hstgr.cloud/webhook-test/lifetracker",
+    prod: "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker"
+};
 
-    const btn = document.getElementById('sendBtn');
-    const status = document.getElementById('status');
-    const openTabLink = document.getElementById('openTabLink');
-    const timerStartBtn = document.getElementById('timerStartBtn');
-    const timerStopBtn = document.getElementById('timerStopBtn');
-    const timerStatus = document.getElementById('timerStatus');
+let currentMode = localStorage.getItem("mode") || "prod";
+let timerCategories = JSON.parse(localStorage.getItem("timerCats")) || ["sleep","sport","eating"];
+let counterCategories = JSON.parse(localStorage.getItem("counterCats")) || ["pushups","pullups"];
+let timerState = JSON.parse(localStorage.getItem("timerState")) || {};
 
-    function setStatus(text, type = '') {
-      status.textContent = text;
-      status.className = 'status ' + type;
-    }
+function switchMode() {
+    currentMode = document.getElementById("modeSwitcher").value;
+    localStorage.setItem("mode", currentMode);
+}
 
-    function setTimerStatus(text, type = '') {
-      timerStatus.textContent = text;
-      timerStatus.className = 'status ' + type;
-    }
+function saveState() {
+    localStorage.setItem("timerCats", JSON.stringify(timerCategories));
+    localStorage.setItem("counterCats", JSON.stringify(counterCategories));
+    localStorage.setItem("timerState", JSON.stringify(timerState));
+}
 
-    function triggerGet(url) {
-      const img = new Image();
-      img.src = url;
-    }
+function formatTime(seconds) {
+    const h = Math.floor(seconds/3600);
+    const m = Math.floor((seconds%3600)/60);
+    const s = seconds%60;
+    return `${h}h ${m}m ${s}s`;
+}
 
-    // Send message button
-    btn.addEventListener('click', () => {
-      setStatus('Sending…');
-      btn.disabled = true;
-      triggerGet(getUrl());
-      setStatus('Request sent.', 'success');
-      btn.disabled = false;
-    });
+// Render Timer mit Live Anzeige & Bearbeiten/Löschen
+function renderTimers() {
+    const container = document.getElementById("timerContainer");
+    container.innerHTML = "";
 
-    openTabLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      window.open(getUrl(), '_blank', 'noopener');
-    });
+    timerCategories.forEach(cat => {
+        const running = timerState[cat]?.running || false;
+        const start = timerState[cat]?.start || null;
 
-    // Start timer
-    timerStartBtn.addEventListener('click', () => {
-      setTimerStatus('Starting…');
-      triggerGet(getTimerUrl('start'));
-      setTimerStatus('Start sent.', 'success');
-    });
-
-    // Stop timer (fetch to read response and show stop time)
-    timerStopBtn.addEventListener('click', async () => {
-      setTimerStatus('Stopping…');
-      try {
-        const res = await fetch(getTimerUrl('stop'));
-        const json = await res.json();
-        const data = Array.isArray(json) ? json[0] : json;
-        if (data.error) {
-          setTimerStatus(data.message || data.error, 'error');
-        } else if (data.endTimeISO || data.message) {
-          const time = data.endTimeISO ? `Stopped at ${data.endTimeISO}` : '';
-          const duration = data.durationSeconds != null ? ` (${data.durationSeconds}s)` : '';
-          setTimerStatus(time + duration || data.message, 'success');
-        } else {
-          setTimerStatus('Stop sent.', 'success');
+        let liveTime = "";
+        if (running && start) {
+            const diff = Math.floor(Date.now()/1000 - start);
+            liveTime = formatTime(diff);
         }
-      } catch (e) {
-        setTimerStatus('Stop sent (response not readable).', 'success');
-      }
+
+        container.innerHTML += `
+            <div class="category-row">
+                <div>
+                    <button class="${running ? "stop" : ""}" onclick="sendTimer('${cat}')">
+                        ${running ? "Stop" : "Start"} ${cat}
+                    </button>
+                    <div style="font-size:12px;margin-top:4px;">
+                        ${running ? "⏱ " + liveTime : ""}
+                    </div>
+                </div>
+                <div>
+                    <button onclick="editCategory('${cat}')">✏️</button>
+                    <button onclick="deleteCategory('${cat}')">🗑️</button>
+                </div>
+            </div>
+        `;
     });
-  </script>
+}
+
+// Render Counter
+function renderCounters() {
+    const container = document.getElementById("counterContainer");
+    container.innerHTML = "";
+
+    counterCategories.forEach(cat => {
+        container.innerHTML += `
+            <div class="category-row">
+                <input id="${cat}" type="number" placeholder="${cat}">
+                <button class="counter" onclick="sendCounter('${cat}')">Senden</button>
+            </div>
+        `;
+    });
+}
+
+// Timer senden
+function sendTimer(category) {
+    if (!timerState[category]) timerState[category] = { running:false, start:null };
+    const isRunning = timerState[category].running;
+
+    if (!isRunning) {
+        timerState[category] = { running: true, start: Math.floor(Date.now()/1000) };
+    } else {
+        timerState[category].running = false;
+    }
+
+    saveState();
+    renderTimers();
+
+    fetch(URLS[currentMode], {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            event: timerState[category].running ? "timer_start" : "timer_stop",
+            category: category,
+            timestamp: Math.floor(Date.now()/1000)
+        })
+    });
+}
+
+// Counter senden
+function sendCounter(category) {
+    const value = document.getElementById(category).value;
+    if (!value) return;
+
+    fetch(URLS[currentMode], {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            event: "counter",
+            category: category,
+            value: Number(value),
+            timestamp: Math.floor(Date.now()/1000)
+        })
+    });
+
+    document.getElementById(category).value = "";
+}
+
+// Kategorie bearbeiten
+function editCategory(cat) {
+    const newName = prompt("Neuer Name:", cat);
+    if (!newName || newName === cat) return;
+
+    timerCategories = timerCategories.map(c => c === cat ? newName : c);
+    if (timerState[cat]) {
+        timerState[newName] = timerState[cat];
+        delete timerState[cat];
+    }
+    saveState();
+    renderTimers();
+}
+
+// Kategorie löschen
+function deleteCategory(cat) {
+    if (!confirm("Kategorie wirklich löschen?")) return;
+    timerCategories = timerCategories.filter(c => c !== cat);
+    delete timerState[cat];
+    saveState();
+    renderTimers();
+}
+
+// Neue Kategorien
+function addTimerCategory() {
+    const input = document.getElementById("newTimerCategory");
+    const newCat = input.value.trim();
+    if (!newCat || timerCategories.includes(newCat)) return;
+
+    timerCategories.push(newCat);
+    timerState[newCat] = { running:false, start:null };
+    saveState();
+    renderTimers();
+    input.value = "";
+}
+
+function addCounterCategory() {
+    const input = document.getElementById("newCounterCategory");
+    const newCat = input.value.trim();
+    if (!newCat || counterCategories.includes(newCat)) return;
+
+    counterCategories.push(newCat);
+    saveState();
+    renderCounters();
+    input.value = "";
+}
+
+// Statistik
+function renderStats() {
+    let totalTimers = Object.values(timerState).filter(t => t.running).length;
+    document.getElementById("stats").innerHTML = `
+        Aktive Timer: ${totalTimers}<br>
+        Kategorien: ${timerCategories.length}
+    `;
+}
+
+// Interval für Live Timer & Stats
+setInterval(() => {
+    renderTimers();
+    renderStats();
+}, 1000);
+
+renderTimers();
+renderCounters();
+renderStats();
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+}
+
+// Aktive Seite markieren
+const page = location.pathname.split("/").pop();
+if (page.includes("index") || page === "") {
+    document.getElementById("navHome").classList.add("active");
+}
+if (page.includes("dashboard")) {
+    document.getElementById("navDashboard").classList.add("active");
+}
+if (page.includes("analytics")) {
+    document.getElementById("navAnalytics").classList.add("active");
+}
+</script>
+
 </body>
 </html>
+
+
 
 
 
