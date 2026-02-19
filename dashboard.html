@@ -13,7 +13,7 @@
         background: #0f172a;
         color: #f1f5f9;
         padding: 20px;
-        padding-bottom: 100px; /* Platz für Menü */
+        padding-bottom: 120px;
     }
 
     h1 {
@@ -35,9 +35,33 @@
         background: rgba(255,255,255,0.06);
         padding: 20px;
         border-radius: 12px;
+        margin-bottom: 30px;
     }
 
-    /* Bottom Navigation */
+    #goalEditor {
+        background: rgba(255,255,255,0.06);
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 30px;
+    }
+
+    .goalRow {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .goalRow input {
+        width: 120px;
+        padding: 6px;
+        border-radius: 8px;
+        border: none;
+        background: #1e293b;
+        color: white;
+        text-align: right;
+    }
+
     #bottomNav {
         position: fixed;
         bottom: 0;
@@ -65,6 +89,23 @@
         opacity: 1;
         transform: translateY(-4px);
     }
+
+    .modeBtn {
+        padding:8px 14px;
+        margin: 0 4px;
+        border-radius:10px;
+        border:none;
+        cursor:pointer;
+        font-weight:600;
+        background:#1e293b;
+        color:white;
+        opacity:0.6;
+        transition:0.2s;
+    }
+    .modeBtn.active {
+        opacity:1;
+        background:#3b82f6;
+    }
 </style>
 </head>
 
@@ -81,23 +122,35 @@
         font-weight:600;
         background:#3b82f6;
         color:white;
-        transition:0.2s;
     ">
         🔄 Aktualisieren
     </button>
 </div>
 
+<div style="text-align:center; margin-bottom:20px;">
+    <button onclick="setMode('timer')" id="btnTimer" class="modeBtn active">Timer</button>
+    <button onclick="setMode('counter')" id="btnCounter" class="modeBtn">Counter</button>
+</div>
+
 <div id="xpBox">
-    XP heute: <span id="xpToday">0</span>  
-    |  
-    XP gesamt: <span id="xpTotal">0</span>
+    XP heute: <span id="xpToday">0</span>
 </div>
 
 <div id="chartContainer">
     <canvas id="todayChart"></canvas>
 </div>
 
-<!-- Bottom Navigation -->
+<!-- 🎯 Ziel-Einstellungen -->
+<div id="goalEditor">
+    <h3>Ziele einstellen (<span id="goalModeLabel">Timer</span>)</h3>
+    <div id="goalList"></div>
+
+    <button onclick="saveGoals()" style="
+        margin-top:10px; padding:8px 14px; border:none; border-radius:10px;
+        background:#3b82f6; color:white; font-weight:600; cursor:pointer;
+    ">Speichern</button>
+</div>
+
 <nav id="bottomNav">
     <a href="index.html" class="navItem" id="navHome">🏠</a>
     <a href="dashboard.html" class="navItem" id="navDashboard">📊</a>
@@ -105,101 +158,126 @@
 </nav>
 
 <script>
-// Aktive Seite markieren
+/* Navigation */
 const page = location.pathname.split("/").pop();
 if (page.includes("index")) document.getElementById("navHome").classList.add("active");
 if (page.includes("dashboard")) document.getElementById("navDashboard").classList.add("active");
 if (page.includes("analytics")) document.getElementById("navAnalytics").classList.add("active");
 
-// URLs
+/* URLs */
 const TIMER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.timer";
 const COUNTER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.counter";
 
-// Ziele pro Kategorie
-const GOALS = {
-    sleep: 8 * 3600,
-    sport: 3600,
-    pushups: 50,
-    cycle: 20
-};
+/* Goals */
+let GOALS = JSON.parse(localStorage.getItem("lifetracker_goals")) || {};
+let categoryTypes = {};
+let currentMode = "timer";
+let chart;
 
-// XP Regeln
-function calculateXP(category, value) {
-    if (!GOALS[category]) return 0;
-    if (value >= GOALS[category]) return 10;
-    return Math.floor((value / GOALS[category]) * 10);
+/* Helpers */
+function normalizeArray(data) {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (typeof data === "object") return [data];
+    return [];
 }
 
 function isToday(ts) {
-    const d = new Date(ts * 1000);
-    const now = new Date();
-    return d.getFullYear() === now.getFullYear() &&
-           d.getMonth() === now.getMonth() &&
-           d.getDate() === now.getDate();
+    if (!ts) return false;
+    const entryDate = new Date(ts * 1000);
+    const today = new Date();
+    return entryDate.toDateString() === today.toDateString();
 }
 
-// Ladeanimation
+function calculateXP(category, value) {
+    if (!GOALS[category]) return 0;
+    return value >= GOALS[category] ? 10 : 0;
+}
+
+function setMode(mode) {
+    currentMode = mode;
+
+    document.getElementById("btnTimer").classList.remove("active");
+    document.getElementById("btnCounter").classList.remove("active");
+
+    document.getElementById("btn" + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add("active");
+
+    document.getElementById("goalModeLabel").textContent = mode === "timer" ? "Timer" : "Counter";
+
+    loadData();
+}
+
 function setLoading(isLoading) {
     const btn = document.getElementById("refreshBtn");
-    if (!btn) return;
-
-    if (isLoading) {
-        btn.disabled = true;
-        btn.innerHTML = "⏳ Lädt…";
-        btn.style.opacity = "0.6";
-    } else {
-        btn.disabled = false;
-        btn.innerHTML = "🔄 Aktualisieren";
-        btn.style.opacity = "1";
-    }
+    btn.disabled = isLoading;
+    btn.innerHTML = isLoading ? "⏳ Lädt…" : "🔄 Aktualisieren";
+    btn.style.opacity = isLoading ? "0.6" : "1";
 }
 
+/* Load Data */
 async function loadData() {
     setLoading(true);
 
     try {
-        const timerData = await fetch(TIMER_URL).then(r => r.json());
-        const counterData = await fetch(COUNTER_URL).then(r => r.json());
+        const timerResponse = await fetch(TIMER_URL);
+        const counterResponse = await fetch(COUNTER_URL);
 
-        const todayTotals = {};
+        const timerRaw = await timerResponse.json();
+        const counterRaw = await counterResponse.json();
 
-        // TIMER
-        timerData.forEach(entry => {
-            if (!isToday(entry.start_ts)) return;
-            const cat = entry.category;
-            todayTotals[cat] = (todayTotals[cat] || 0) + entry.duration_s;
+        const timerData = normalizeArray(timerRaw);
+        const counterData = normalizeArray(counterRaw);
+
+        const totals = {};
+
+        /* Detect category types */
+        timerData.forEach(e => categoryTypes[e.category] = "timer");
+        counterData.forEach(e => categoryTypes[e.category] = "counter");
+
+        /* Default goals */
+        Object.keys(categoryTypes).forEach(cat => {
+            if (!GOALS[cat]) {
+                GOALS[cat] = categoryTypes[cat] === "timer" ? 60 : 10;
+            }
         });
 
-        // COUNTER
-        counterData.forEach(entry => {
-            if (!isToday(entry.timestamp)) return;
-            const cat = entry.category;
-            todayTotals[cat] = (todayTotals[cat] || 0) + entry.value;
-        });
+        renderGoalEditor();
 
-        // XP Berechnung
+        /* Timer totals */
+        if (currentMode === "timer") {
+            timerData.forEach(entry => {
+                if (!isToday(entry.start_ts)) return;
+                totals[entry.category] = (totals[entry.category] || 0) + Math.floor(entry.duration_s / 60);
+            });
+        }
+
+        /* Counter totals */
+        if (currentMode === "counter") {
+            counterData.forEach(entry => {
+                if (!isToday(entry.timestamp)) return;
+                totals[entry.category] = (totals[entry.category] || 0) + entry.value;
+            });
+        }
+
+        /* XP */
         let xpToday = 0;
-        let xpTotal = 0;
-
-        Object.entries(todayTotals).forEach(([cat, val]) => {
+        Object.entries(totals).forEach(([cat, val]) => {
             xpToday += calculateXP(cat, val);
-            xpTotal += calculateXP(cat, val);
         });
 
         document.getElementById("xpToday").textContent = xpToday;
-        document.getElementById("xpTotal").textContent = xpTotal;
 
-        renderChart(todayTotals);
+        renderChart(totals);
 
     } catch (err) {
-        alert("Fehler beim Laden der Daten: " + err);
+        console.error("Fehler:", err);
+        alert("Fehler beim Laden: " + err);
     }
 
     setLoading(false);
 }
 
-let chart;
-
+/* Chart */
 function renderChart(data) {
     const ctx = document.getElementById("todayChart");
 
@@ -207,7 +285,6 @@ function renderChart(data) {
 
     const labels = Object.keys(data);
     const values = Object.values(data);
-
     const goalLines = labels.map(cat => GOALS[cat] || null);
 
     chart = new Chart(ctx, {
@@ -239,10 +316,47 @@ function renderChart(data) {
     });
 }
 
+/* Goal Editor */
+function renderGoalEditor() {
+    const container = document.getElementById("goalList");
+    container.innerHTML = "";
+
+    Object.entries(GOALS).forEach(([cat, goal]) => {
+        if (categoryTypes[cat] !== currentMode) return;
+
+        container.innerHTML += `
+            <div class="goalRow">
+                <span>${cat}</span>
+                <input 
+                    id="goal_${cat}" 
+                    type="number" 
+                    min="0" 
+                    value="${goal}"
+                    placeholder="${currentMode === 'timer' ? 'Minuten' : 'Anzahl'}"
+                >
+            </div>
+        `;
+    });
+}
+
+function saveGoals() {
+    Object.keys(GOALS).forEach(cat => {
+        if (categoryTypes[cat] !== currentMode) return;
+
+        const val = Number(document.getElementById("goal_" + cat).value);
+        if (!isNaN(val) && val >= 0) {
+            GOALS[cat] = val;
+        }
+    });
+
+    localStorage.setItem("lifetracker_goals", JSON.stringify(GOALS));
+
+    alert("Ziele gespeichert!");
+    loadData();
+}
+
 loadData();
 </script>
 
 </body>
 </html>
-
-
