@@ -13,6 +13,7 @@
         background: #0f172a;
         color: #f1f5f9;
         padding: 20px;
+        padding-bottom: 100px; /* Platz für Menü */
     }
 
     h1 {
@@ -35,12 +36,56 @@
         padding: 20px;
         border-radius: 12px;
     }
+
+    /* Bottom Navigation */
+    #bottomNav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: rgba(255,255,255,0.06);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 999;
+    }
+
+    .navItem {
+        color: #f1f5f9;
+        font-size: 26px;
+        text-decoration: none;
+        opacity: 0.6;
+        transition: 0.2s;
+    }
+
+    .navItem.active {
+        opacity: 1;
+        transform: translateY(-4px);
+    }
 </style>
 </head>
 
 <body>
 
 <h1>📊 Dashboard – Heute</h1>
+
+<div style="text-align:center; margin-bottom:20px;">
+    <button id="refreshBtn" onclick="loadData()" style="
+        padding:10px 16px;
+        border-radius:12px;
+        border:none;
+        cursor:pointer;
+        font-weight:600;
+        background:#3b82f6;
+        color:white;
+        transition:0.2s;
+    ">
+        🔄 Aktualisieren
+    </button>
+</div>
 
 <div id="xpBox">
     XP heute: <span id="xpToday">0</span>  
@@ -52,11 +97,25 @@
     <canvas id="todayChart"></canvas>
 </div>
 
+<!-- Bottom Navigation -->
+<nav id="bottomNav">
+    <a href="index.html" class="navItem" id="navHome">🏠</a>
+    <a href="dashboard.html" class="navItem" id="navDashboard">📊</a>
+    <a href="analytics.html" class="navItem" id="navAnalytics">📈</a>
+</nav>
+
 <script>
+// Aktive Seite markieren
+const page = location.pathname.split("/").pop();
+if (page.includes("index")) document.getElementById("navHome").classList.add("active");
+if (page.includes("dashboard")) document.getElementById("navDashboard").classList.add("active");
+if (page.includes("analytics")) document.getElementById("navAnalytics").classList.add("active");
+
+// URLs
 const TIMER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.timer";
 const COUNTER_URL = "https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.counter";
 
-// Ziele pro Kategorie (kannst du später dynamisch machen)
+// Ziele pro Kategorie
 const GOALS = {
     sleep: 8 * 3600,
     sport: 3600,
@@ -67,7 +126,7 @@ const GOALS = {
 // XP Regeln
 function calculateXP(category, value) {
     if (!GOALS[category]) return 0;
-    if (value >= GOALS[category]) return 10; // Bonus
+    if (value >= GOALS[category]) return 10;
     return Math.floor((value / GOALS[category]) * 10);
 }
 
@@ -79,39 +138,64 @@ function isToday(ts) {
            d.getDate() === now.getDate();
 }
 
+// Ladeanimation
+function setLoading(isLoading) {
+    const btn = document.getElementById("refreshBtn");
+    if (!btn) return;
+
+    if (isLoading) {
+        btn.disabled = true;
+        btn.innerHTML = "⏳ Lädt…";
+        btn.style.opacity = "0.6";
+    } else {
+        btn.disabled = false;
+        btn.innerHTML = "🔄 Aktualisieren";
+        btn.style.opacity = "1";
+    }
+}
+
 async function loadData() {
-    const timerData = await fetch(TIMER_URL).then(r => r.json());
-    const counterData = await fetch(COUNTER_URL).then(r => r.json());
+    setLoading(true);
 
-    const todayTotals = {};
+    try {
+        const timerData = await fetch(TIMER_URL).then(r => r.json());
+        const counterData = await fetch(COUNTER_URL).then(r => r.json());
 
-    // TIMER
-    timerData.forEach(entry => {
-        if (!isToday(entry.start_ts)) return;
-        const cat = entry.category;
-        todayTotals[cat] = (todayTotals[cat] || 0) + entry.duration_s;
-    });
+        const todayTotals = {};
 
-    // COUNTER
-    counterData.forEach(entry => {
-        if (!isToday(entry.timestamp)) return;
-        const cat = entry.category;
-        todayTotals[cat] = (todayTotals[cat] || 0) + entry.value;
-    });
+        // TIMER
+        timerData.forEach(entry => {
+            if (!isToday(entry.start_ts)) return;
+            const cat = entry.category;
+            todayTotals[cat] = (todayTotals[cat] || 0) + entry.duration_s;
+        });
 
-    // XP Berechnung
-    let xpToday = 0;
-    let xpTotal = 0;
+        // COUNTER
+        counterData.forEach(entry => {
+            if (!isToday(entry.timestamp)) return;
+            const cat = entry.category;
+            todayTotals[cat] = (todayTotals[cat] || 0) + entry.value;
+        });
 
-    Object.entries(todayTotals).forEach(([cat, val]) => {
-        xpToday += calculateXP(cat, val);
-        xpTotal += calculateXP(cat, val); // später: echte Gesamt-XP
-    });
+        // XP Berechnung
+        let xpToday = 0;
+        let xpTotal = 0;
 
-    document.getElementById("xpToday").textContent = xpToday;
-    document.getElementById("xpTotal").textContent = xpTotal;
+        Object.entries(todayTotals).forEach(([cat, val]) => {
+            xpToday += calculateXP(cat, val);
+            xpTotal += calculateXP(cat, val);
+        });
 
-    renderChart(todayTotals);
+        document.getElementById("xpToday").textContent = xpToday;
+        document.getElementById("xpTotal").textContent = xpTotal;
+
+        renderChart(todayTotals);
+
+    } catch (err) {
+        alert("Fehler beim Laden der Daten: " + err);
+    }
+
+    setLoading(false);
 }
 
 let chart;
@@ -149,9 +233,7 @@ function renderChart(data) {
         options: {
             responsive: true,
             scales: {
-                y: {
-                    beginAtZero: true
-                }
+                y: { beginAtZero: true }
             }
         }
     });
@@ -162,3 +244,5 @@ loadData();
 
 </body>
 </html>
+
+
