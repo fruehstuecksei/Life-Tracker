@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LifeTracker – Analytics mit Trend</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:Inter,sans-serif;background:#0f172a;color:#f1f5f9;padding:20px;padding-bottom:120px}
+h1{text-align:center;margin-bottom:20px}
+.modeBtn,.timeChip,.tagChip,.categoryChip,.dataModeChip{padding:6px 12px;margin:4px;border-radius:10px;border:none;cursor:pointer;font-weight:600;background:#1e293b;color:white;opacity:.6;transition:.2s}
+.modeBtn.active,.timeChip.active,.tagChip.active,.categoryChip.active,.dataModeChip.active{opacity:1;background:#3b82f6}
+.select-bar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:15px}
+.chart-container{background: rgba(255,255,255,0.06);padding:20px;border-radius:12px;margin-bottom:30px}
+#statsBox{text-align:center;margin-bottom:20px;font-weight:600}
+
+/* Bottom Navigation */
+#bottomNav{position:fixed;bottom:0;left:0;right:0;height:60px;background:rgba(255,255,255,0.06);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-around;align-items:center}
+.navItem{color:#f1f5f9;font-size:26px;text-decoration:none;opacity:.6}
+.navItem.active{opacity:1;transform:translateY(-4px)}
+</style>
+</head>
+<body>
+
+<h1>LifeTracker Analytics</h1>
+
+<!-- Timer / Counter -->
+<div id="modeBar" class="select-bar">
+    <button class="modeBtn active" data-mode="timer">Timer</button>
+    <button class="modeBtn" data-mode="counter">Counter</button>
+</div>
+
+<!-- Zeitraum -->
+<div id="timeBar" class="select-bar">
+    <div class="timeChip active" data-range="week">Woche</div>
+    <div class="timeChip" data-range="month">Monat</div>
+    <div class="timeChip" data-range="total">Gesamt</div>
+</div>
+
+<!-- Datenmodus Toggle -->
+<div id="dataModeBar" class="select-bar">
+    <div class="dataModeChip active" data-mode="value">Zeit/Anzahl</div>
+    <div class="dataModeChip" data-mode="success">Erfolgsquote</div>
+</div>
+
+<!-- Tag Auswahl -->
+<div id="tagBar" class="select-bar"></div>
+
+<!-- Kategorien Auswahl -->
+<div id="categoryBar" class="select-bar"></div>
+
+<!-- Statistiken -->
+<div id="statsBox"></div>
+
+<!-- Diagramm -->
+<div class="chart-container">
+    <canvas id="mainChart"></canvas>
+</div>
+
+<!-- ------------------ Bottom Navigation ------------------ -->
+<nav id="bottomNav">
+    <a href="index.html" class="navItem">🏠</a>
+    <a href="dashboard.html" class="navItem">📊</a>
+    <a href="analytics.html" class="navItem active">📈</a>
+</nav>
+
+<script>
+/* -------------------- Storage Data -------------------- */
+let TIMER_DATA = JSON.parse(localStorage.getItem("lifetracker_timer")) || [];
+let COUNTER_DATA = JSON.parse(localStorage.getItem("lifetracker_counter")) || [];
+let CATEGORY_TAGS = JSON.parse(localStorage.getItem("lifetracker_tags")) || {};
+let GOALS = JSON.parse(localStorage.getItem("lifetracker_goals")) || {};
+
+/* -------------------- State -------------------- */
+let selectedMode="timer";
+let selectedRange="week";
+let selectedDataMode="value"; // "value"=Zeit/Anzahl, "success"=Erfolgsquote
+let selectedTag="";
+let selectedCategory="Alle";
+let mainChart;
+
+/* -------------------- Helper Functions -------------------- */
+function isInRange(ts, range){
+    const now=new Date();
+    let start;
+    if(range==="week") start=new Date(now.getTime()-7*24*3600*1000);
+    else if(range==="month") start=new Date(now.getTime()-30*24*3600*1000);
+    else start=new Date(0);
+    return ts*1000 >= start.getTime();
+}
+function getDateLabel(ts){ const d=new Date(ts*1000); return `${d.getDate()}.${d.getMonth()+1}`; }
+
+/* -------------------- Aggregate Data -------------------- */
+function aggregateByDay(source){
+    const totals={};
+    source.forEach(e=>{
+        const ts = selectedMode==="timer"?Number(e.start_ts):Number(e.timestamp);
+        if(!ts||!isInRange(ts,selectedRange)) return;
+        if(selectedTag && !(CATEGORY_TAGS[e.category]||[]).includes(selectedTag)) return;
+        if(selectedCategory!=="Alle" && e.category!==selectedCategory) return;
+        const val = selectedMode==="timer"?Math.floor(Number(e.duration_s)/60):Number(e.value);
+        if(val<=0) return;
+        const day = getDateLabel(ts);
+        totals[day] = (totals[day]||0)+val;
+    });
+    return totals;
+}
+function aggregateByCategoryOrTag(){
+    const source = selectedMode==="timer"?TIMER_DATA:COUNTER_DATA;
+    const totals={};
+    if(selectedTag===""){
+        Object.keys(CATEGORY_TAGS).forEach(cat=>{
+            if(selectedCategory!=="Alle" && cat!==selectedCategory) return;
+            let sum=0;
+            source.forEach(e=>{const val=selectedMode==="timer"?Math.floor(e.duration_s/60):Number(e.value); if(e.category===cat) sum+=val;});
+            totals[cat]=sum;
+        });
+    } else {
+        Object.entries(CATEGORY_TAGS).forEach(([cat,tags])=>{
+            if(selectedCategory!=="Alle" && cat!==selectedCategory) return;
+            if(tags.includes(selectedTag)){
+                let sum=0;
+                source.forEach(e=>{const val=selectedMode==="timer"?Math.floor(e.duration_s/60):Number(e.value); if(e.category===cat) sum+=val;});
+                totals[selectedTag]=(totals[selectedTag]||0)+sum;
+            }
+        });
+    }
+    return totals;
+}
+
+/* -------------------- Trendlinie -------------------- */
+function linearTrend(values){
+    const n = values.length;
+    if(n<2) return Array(n).fill(values[0]||0);
+    const sumX = values.reduce((a,_,i)=>a+i,0);
+    const sumY = values.reduce((a,b)=>a+b,0);
+    const sumXY = values.reduce((a,v,i)=>a+i*v,0);
+    const sumX2 = values.reduce((a,_,i)=>a+i*i,0);
+    const slope = (n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX);
+    const intercept = (sumY - slope*sumX)/n;
+    return values.map((_,i)=>slope*i+intercept);
+}
+
+/* -------------------- UI Functions -------------------- */
+function renderModeBar(){document.querySelectorAll("#modeBar .modeBtn").forEach(btn=>{btn.classList.toggle("active",btn.dataset.mode===selectedMode);btn.onclick=()=>{selectedMode=btn.dataset.mode; renderModeBar(); loadChart();}});}
+function renderTimeBar(){document.querySelectorAll("#timeBar .timeChip").forEach(chip=>{chip.classList.toggle("active",chip.dataset.range===selectedRange);chip.onclick=()=>{selectedRange=chip.dataset.range; renderTimeBar(); loadChart();}});}
+function renderDataModeBar(){document.querySelectorAll("#dataModeBar .dataModeChip").forEach(chip=>{chip.classList.toggle("active",chip.dataset.mode===selectedDataMode); chip.onclick=()=>{ selectedDataMode = chip.dataset.mode; renderDataModeBar(); loadChart(); };});}
+
+function renderTagBar(){
+    const container=document.getElementById("tagBar"); container.innerHTML="";
+    const allChip=document.createElement("div"); allChip.textContent="Alle"; allChip.className="tagChip "+(selectedTag===""?"active":""); allChip.onclick=()=>{selectedTag=""; selectedCategory="Alle"; renderTagBar(); renderCategoryBar(); loadChart();}; container.appendChild(allChip);
+    Object.values(CATEGORY_TAGS).flat().forEach(tag=>{const chip=document.createElement("div"); chip.textContent=tag; chip.className="tagChip "+(selectedTag===tag?"active":""); chip.onclick=()=>{selectedTag=tag; selectedCategory="Alle"; renderTagBar(); renderCategoryBar(); loadChart();}; container.appendChild(chip);});
+}
+function renderCategoryBar(){const container=document.getElementById("categoryBar"); container.innerHTML=""; if(!selectedTag) return; const allChip=document.createElement("div"); allChip.textContent="Alle"; allChip.className="categoryChip "+(selectedCategory==="Alle"?"active":""); allChip.onclick=()=>{ selectedCategory="Alle"; renderCategoryBar(); loadChart(); }; container.appendChild(allChip); Object.keys(CATEGORY_TAGS).filter(cat=>CATEGORY_TAGS[cat]?.includes(selectedTag)).forEach(cat=>{const chip=document.createElement("div"); chip.textContent=cat; chip.className="categoryChip "+(selectedCategory===cat?"active":""); chip.onclick=()=>{ selectedCategory=cat; renderCategoryBar(); loadChart(); }; container.appendChild(chip);});}
+
+/* -------------------- Load Chart -------------------- */
+function loadChart(){
+    const ctx=document.getElementById("mainChart"); if(mainChart) mainChart.destroy();
+    let labels=[], dataValues=[], total=0, avg=0;
+
+    if(selectedTag==="" && selectedCategory==="Alle"){
+        const totals = aggregateByCategoryOrTag();
+        labels = Object.keys(totals);
+        dataValues = Object.values(totals);
+        total = dataValues.reduce((a,b)=>a+b,0);
+        avg = Math.round(total/dataValues.length);
+        if(selectedDataMode==="success") dataValues = labels.map(l=>{ const goal = GOALS[l]?.value||0; return goal>0?(totals[l]>=goal?100:0):0; });
+        document.getElementById("statsBox").innerHTML=`Gesamt: ${total} ${selectedDataMode==="value"?(selectedMode==="timer"?"min":"x"):"%"} , Ø: ${avg} ${selectedDataMode==="value"?"":"%"}`;
+        const trend = linearTrend(dataValues);
+        mainChart=new Chart(ctx,{type:"bar",data:{labels,datasets:[{label:selectedDataMode==="value"?(selectedMode==="timer"?"Zeit":"Anzahl"):"Erfolgsquote",data:dataValues,backgroundColor:"#3b82f6"},{label:"Trend",type:"line",data:trend,borderColor:"#facc15",borderWidth:2,fill:false,tension:0}]},options:{responsive:true,scales:{y:{beginAtZero:true,max:selectedDataMode==="success"?100:undefined}}}});
+        return;
+    }
+
+    const source = selectedMode==="timer"?TIMER_DATA:COUNTER_DATA;
+    const totals = aggregateByDay(source);
+    labels = Object.keys(totals).sort((a,b)=>new Date(a.split('.').reverse().join('-'))-new Date(b.split('.').reverse().join('-')));
+    dataValues = labels.map(l=>totals[l]);
+    total = dataValues.reduce((a,b)=>a+b,0);
+    avg = Math.round(total/Math.max(dataValues.length,1));
+    if(selectedDataMode==="success"){
+        dataValues = labels.map(l=>{
+            const catValues = source.filter(e=>{
+                const ts = selectedMode==="timer"?Number(e.start_ts):Number(e.timestamp);
+                const day=getDateLabel(ts);
+                if(day!==l) return false;
+                if(selectedTag && !(CATEGORY_TAGS[e.category]||[]).includes(selectedTag)) return false;
+                if(selectedCategory!=="Alle" && e.category!==selectedCategory) return false;
+                const val = selectedMode==="timer"?Math.floor(Number(e.duration_s)/60):Number(e.value);
+                const goal = GOALS[e.category]?.value||0;
+                return goal>0 ? (val>=goal?1:0) : 0;
+            });
+            return Math.round(catValues.reduce((a,b)=>a+b,0)/Math.max(catValues.length,1)*100);
+        });
+    }
+    document.getElementById("statsBox").innerHTML=`Gesamt: ${total} ${selectedDataMode==="value"?(selectedMode==="timer"?"min":"x"):"%"} , Ø: ${avg} ${selectedDataMode==="value"?"":"%"}`;
+    const trend = linearTrend(dataValues);
+    mainChart=new Chart(ctx,{type:"bar",data:{labels,datasets:[{label:selectedDataMode==="value"?(selectedMode==="timer"?"Zeit":"Anzahl"):"Erfolgsquote",data:dataValues,backgroundColor:"#3b82f6"},{label:"Trend",type:"line",data:trend,borderColor:"#facc15",borderWidth:2,fill:false,tension:0}]},options:{responsive:true,scales:{y:{beginAtZero:true,max:selectedDataMode==="success"?100:undefined}}}});
+}
+
+/* -------------------- Init -------------------- */
+renderModeBar(); renderTimeBar(); renderDataModeBar(); renderTagBar(); renderCategoryBar(); loadChart();
+</script>
+
+</body>
+</html>
