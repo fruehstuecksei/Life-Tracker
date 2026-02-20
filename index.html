@@ -140,16 +140,6 @@ input {
 
 <h1>🚀 LifeTracker</h1>
 
-<!-- PIN Schutz -->
-<div id="pinOverlay" style="
-position:fixed; inset:0; background:#0f172a; 
-display:flex; flex-direction:column; 
-justify-content:center; align-items:center; z-index:9999;">
-<h2>🔒 LifeTracker</h2>
-<input id="pinInput" type="password" placeholder="PIN eingeben" style="margin:10px;">
-<button onclick="checkPin()">Login</button>
-</div>
-
 <div class="section">
     <h2>Modus</h2>
     <select id="modeSwitcher" onchange="switchMode()">
@@ -174,11 +164,6 @@ justify-content:center; align-items:center; z-index:9999;">
     <button onclick="addCounterCategory()">+ Hinzufügen</button>
 </div>
 
-<div class="section">
-<h2>📊 Statistik (lokal)</h2>
-<div id="stats"></div>
-</div>
-
 <!-- Bottom Navigation -->
 <nav id="bottomNav">
     <a href="index.html" class="navItem" id="navHome">🏠</a>
@@ -187,17 +172,6 @@ justify-content:center; align-items:center; z-index:9999;">
 </nav>
 
 <script>
-const APP_PIN = "1234"; // PIN für Zugriff
-
-function checkPin() {
-    const value = document.getElementById("pinInput").value;
-    if (value === APP_PIN) {
-        document.getElementById("pinOverlay").style.display = "none";
-    } else {
-        alert("Falscher PIN");
-    }
-}
-
 // URLs
 const URLS = {
     test: "https://n8n.srv1377935.hstgr.cloud/webhook-test/lifetracker",
@@ -227,7 +201,7 @@ function formatTime(seconds) {
     return `${h}h ${m}m ${s}s`;
 }
 
-// Render Timer mit Live Anzeige & Bearbeiten/Löschen
+// Render Timer
 function renderTimers() {
     const container = document.getElementById("timerContainer");
     container.innerHTML = "";
@@ -367,24 +341,13 @@ function addCounterCategory() {
     input.value = "";
 }
 
-// Statistik
-function renderStats() {
-    let totalTimers = Object.values(timerState).filter(t => t.running).length;
-    document.getElementById("stats").innerHTML = `
-        Aktive Timer: ${totalTimers}<br>
-        Kategorien: ${timerCategories.length}
-    `;
-}
-
-// Interval für Live Timer & Stats
+// Interval für Live Timer
 setInterval(() => {
     renderTimers();
-    renderStats();
 }, 1000);
 
 renderTimers();
 renderCounters();
-renderStats();
 
 // Service Worker
 if ('serviceWorker' in navigator) {
@@ -406,5 +369,3 @@ if (page.includes("analytics")) {
 
 </body>
 </html>
-
-
