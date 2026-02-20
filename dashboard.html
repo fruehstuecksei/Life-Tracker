@@ -4,125 +4,36 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LifeTracker – Dashboard Heute</title>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-body {
-    font-family: Inter, sans-serif;
-    background: #0f172a;
-    color: #f1f5f9;
-    padding: 20px;
-    padding-bottom: 120px;
-}
-h1 { text-align:center; margin-bottom:20px; }
+body{font-family:Inter,sans-serif;background:#0f172a;color:#f1f5f9;padding:20px;padding-bottom:120px}
+h1{text-align:center;margin-bottom:20px}
+#chartContainer,#goalEditor{background:rgba(255,255,255,0.06);padding:20px;border-radius:12px;margin-bottom:30px}
+.goalRow{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px}
+.goalRow input{width:90px;padding:6px;border-radius:8px;border:none;background:#1e293b;color:white;text-align:right}
+.modeBtn{padding:8px 14px;margin:0 4px;border-radius:10px;border:none;cursor:pointer;font-weight:600;background:#1e293b;color:white;opacity:.6;transition:.2s}
+.modeBtn.active{opacity:1;background:#3b82f6}
+#bottomNav{position:fixed;bottom:0;left:0;right:0;height:60px;background:rgba(255,255,255,0.06);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-around;align-items:center}
+.navItem{color:#f1f5f9;font-size:26px;text-decoration:none;opacity:.6}
+.navItem.active{opacity:1;transform:translateY(-4px)}
+.tag-bar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:20px}
+.tag-chip{padding:6px 12px;border-radius:12px;background:#1e293b;cursor:pointer;user-select:none;transition:.2s;font-size:14px}
+.tag-chip.active{background:#3b82f6}
 
-#xpBox, #chartContainer, #goalEditor {
-    background: rgba(255,255,255,0.06);
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 30px;
-}
-
-.goalRow {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:12px;
-    gap:10px;
-}
-
-.goalRow input {
-    width:90px;
-    padding:6px;
-    border-radius:8px;
-    border:none;
-    background:#1e293b;
-    color:white;
-    text-align:right;
-}
-
-.modeBtn {
-    padding:8px 14px;
-    margin:0 4px;
-    border-radius:10px;
-    border:none;
-    cursor:pointer;
-    font-weight:600;
-    background:#1e293b;
-    color:white;
-    opacity:0.6;
-    transition:0.2s;
-}
-.modeBtn.active {
-    opacity:1;
-    background:#3b82f6;
-}
-
-#bottomNav {
-    position:fixed;
-    bottom:0;
-    left:0;
-    right:0;
-    height:60px;
-    background:rgba(255,255,255,0.06);
-    backdrop-filter:blur(20px);
-    border-top:1px solid rgba(255,255,255,0.1);
-    display:flex;
-    justify-content:space-around;
-    align-items:center;
-}
-
-.navItem {
-    color:#f1f5f9;
-    font-size:26px;
-    text-decoration:none;
-    opacity:0.6;
-}
-.navItem.active {
-    opacity:1;
-    transform:translateY(-4px);
-}
-
-/* Tag-Chips */
-.tag-bar {
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    gap:8px;
-    margin-bottom:20px;
-}
-
-.tag-chip {
-    padding:6px 12px;
-    border-radius:12px;
-    background:#1e293b;
-    cursor:pointer;
-    user-select:none;
-    transition:0.2s;
-    font-size:14px;
-}
-.tag-chip.active {
-    background:#3b82f6;
-}
+/* Modal */
+#goalTagModal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:2000}
+#goalTagModalContent{background:#1e293b;padding:20px;border-radius:16px;width:360px;max-height:80vh;overflow-y:auto}
+#modalTabs{display:flex;margin-bottom:10px}
+#modalTabs button{flex:1;padding:8px;border:none;border-radius:8px;margin-right:4px;background:#0f172a;color:white;cursor:pointer;opacity:.6}
+#modalTabs button.active{opacity:1;background:#3b82f6}
 </style>
 </head>
-
 <body>
 
 <h1>📊 Dashboard – Heute</h1>
 
 <div style="text-align:center;margin-bottom:20px;">
-    <button onclick="loadData()" style="
-        padding:10px 16px;
-        border-radius:12px;
-        border:none;
-        font-weight:600;
-        background:#3b82f6;
-        color:white;
-        cursor:pointer;">
-        🔄 Aktualisieren
-    </button>
+    <button onclick="loadData()" style="padding:10px 16px;border-radius:12px;border:none;font-weight:600;background:#3b82f6;color:white;cursor:pointer;">🔄 Aktualisieren</button>
 </div>
 
 <div style="text-align:center;margin-bottom:20px;">
@@ -135,31 +46,18 @@ h1 { text-align:center; margin-bottom:20px; }
     <button onclick="setView('tags')" id="btnTags" class="modeBtn">Tags</button>
 </div>
 
-<!-- Tag-Bar -->
 <div id="tagBar" class="tag-bar"></div>
 
-<div id="xpBox">
-    XP heute: <span id="xpToday">0</span>
-</div>
-
-<div id="chartContainer">
-    <canvas id="todayChart"></canvas>
-</div>
+<div id="chartContainer"><canvas id="todayChart"></canvas></div>
 
 <div id="goalEditor">
     <h3>Einstellungen (<span id="goalModeLabel">Timer</span>)</h3>
-    <div id="goalList"></div>
-    <button onclick="saveGoals()" style="
-        margin-top:10px;
-        padding:8px 14px;
-        border:none;
-        border-radius:10px;
-        background:#3b82f6;
-        color:white;
-        font-weight:600;
-        cursor:pointer;">
-        Speichern
-    </button>
+    <div id="settingsTabs" style="display:flex;margin-bottom:10px;">
+        <button onclick="showSettings('timer')" id="settingsTimer" class="modeBtn active" style="flex:1;">Timer</button>
+        <button onclick="showSettings('counter')" id="settingsCounter" class="modeBtn" style="flex:1;">Counter</button>
+        <button onclick="showSettings('tags')" id="settingsTags" class="modeBtn" style="flex:1;">Tags</button>
+    </div>
+    <div id="settingsContent"></div>
 </div>
 
 <nav id="bottomNav">
@@ -168,257 +66,231 @@ h1 { text-align:center; margin-bottom:20px; }
     <a href="analytics.html" class="navItem">📈</a>
 </nav>
 
-<!-- TAG MODAL -->
-<div id="tagModal" style="
-position:fixed;
-inset:0;
-background:rgba(0,0,0,0.6);
-display:none;
-align-items:center;
-justify-content:center;
-z-index:2000;">
-
-<div style="
-background:#1e293b;
-padding:20px;
-border-radius:16px;
-width:320px;
-max-height:80vh;
-overflow-y:auto;">
-
-<h3 id="tagModalTitle">Tags</h3>
-<div id="tagList" style="margin-top:15px;"></div>
-
-<div style="margin-top:15px;">
-<input id="newTagInput" placeholder="Neuer Tag..." style="
-width:100%;
-padding:8px;
-border-radius:8px;
-border:none;
-background:#0f172a;
-color:white;">
-<button onclick="addTag()" style="
-margin-top:8px;
-width:100%;
-padding:8px;
-border:none;
-border-radius:8px;
-background:#3b82f6;
-color:white;
-font-weight:600;
-cursor:pointer;">
-➕ Hinzufügen
-</button>
-</div>
-
-<button onclick="closeTagModal()" style="
-margin-top:15px;
-width:100%;
-padding:8px;
-border:none;
-border-radius:8px;
-background:#475569;
-color:white;
-cursor:pointer;">
-Schließen
-</button>
-
-</div>
+<!-- Goal/Tag Modal -->
+<div id="goalTagModal">
+  <div id="goalTagModalContent">
+    <div id="modalTabs">
+      <button id="tabGoal" class="active" onclick="switchModalTab('goal')">Ziel</button>
+      <button id="tabTag" onclick="switchModalTab('tag')">Tags</button>
+    </div>
+    <div id="modalGoalContent"></div>
+    <div id="modalTagContent"></div>
+    <button onclick="closeGoalTagModal()" style="margin-top:15px;width:100%;padding:8px;border:none;border-radius:8px;background:#475569;color:white;cursor:pointer;">Schließen</button>
+  </div>
 </div>
 
 <script>
-const TIMER_URL="https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.timer";
-const COUNTER_URL="https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.counter";
+const URLS={
+  timer:"https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.timer",
+  counter:"https://n8n.srv1377935.hstgr.cloud/webhook/lifetracker.counter"
+};
 
-let GOALS=JSON.parse(localStorage.getItem("lifetracker_goals"))||{};
-let CATEGORY_TAGS=JSON.parse(localStorage.getItem("lifetracker_tags"))||{};
-let categoryTypes={};
-let currentMode="timer";
-let currentView="categories";
-let chart;
-let activeTagCategory=null;
-let selectedTag=""; // für Tag-Chips
+let GOALS = JSON.parse(localStorage.getItem("lifetracker_goals")) || {};
+let CATEGORY_TAGS = JSON.parse(localStorage.getItem("lifetracker_tags")) || {};
+let categoryTypes = {}, currentMode = "timer", currentView = "categories", selectedTag = "", activeCategory = null, chart;
 
-function normalizeArray(data){ if(!data) return []; if(Array.isArray(data)) return data; return [data]; }
-function isToday(ts){ if(!ts) return false; const d=new Date(ts*1000); return d.toDateString()===new Date().toDateString(); }
-function calculateXP(cat,val){ if(!GOALS[cat]) return 0; return val>=GOALS[cat]?10:0; }
+const normalize = d => Array.isArray(d) ? d : (d ? [d] : []);
+const isToday = ts => ts && new Date(ts*1000).toDateString() === new Date().toDateString();
+const saveLocal = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+const toggleActive = (id,state) => document.getElementById(id).classList.toggle("active", state);
 
+/* ------------------ Mode & View ------------------ */
 function setMode(mode){
-    currentMode=mode;
-    document.getElementById("btnTimer").classList.toggle("active",mode==="timer");
-    document.getElementById("btnCounter").classList.toggle("active",mode==="counter");
-    document.getElementById("goalModeLabel").textContent=mode==="timer"?"Timer":"Counter";
-    loadData();
+  currentMode = mode;
+  toggleActive("btnTimer", mode==="timer");
+  toggleActive("btnCounter", mode==="counter");
+  document.getElementById("goalModeLabel").textContent = mode==="timer"?"Timer":"Counter";
+  loadData();
 }
-
 function setView(view){
-    currentView=view;
-    document.getElementById("btnCategories").classList.toggle("active",view==="categories");
-    document.getElementById("btnTags").classList.toggle("active",view==="tags");
-    document.getElementById("tagBar").style.display=view==="categories"?"flex":"none";
-    loadData();
+  currentView = view;
+  toggleActive("btnCategories", view==="categories");
+  toggleActive("btnTags", view==="tags");
+  document.getElementById("tagBar").style.display = view==="categories"?"flex":"none";
+  loadData();
 }
 
-/* TAG MODAL */
-function editTags(cat){
-    activeTagCategory=cat;
-    document.getElementById("tagModalTitle").textContent="Tags für "+cat;
-    document.getElementById("tagModal").style.display="flex";
-    renderTagList();
-}
-function closeTagModal(){ document.getElementById("tagModal").style.display="none"; }
-function renderTagList(){
-    const container=document.getElementById("tagList");
-    container.innerHTML="";
-    const tags=CATEGORY_TAGS[activeTagCategory]||[];
-    if(tags.length===0){ container.innerHTML="<p style='opacity:0.6;'>Keine Tags vorhanden</p>"; return; }
-    tags.forEach((tag,i)=>{
-        container.innerHTML+=`
-        <div style="display:flex;justify-content:space-between;
-        align-items:center;background:#0f172a;padding:8px;
-        border-radius:8px;margin-bottom:8px;">
-        <span>${tag}</span>
-        <button onclick="removeTag(${i})"
-        style="background:#ef4444;border:none;padding:4px 8px;
-        border-radius:6px;color:white;cursor:pointer;">✕</button>
-        </div>`;
-    });
-}
-function addTag(){
-    const input=document.getElementById("newTagInput");
-    const val=input.value.trim();
-    if(!val) return;
-    if(!CATEGORY_TAGS[activeTagCategory]) CATEGORY_TAGS[activeTagCategory]=[];
-    if(!CATEGORY_TAGS[activeTagCategory].includes(val)) CATEGORY_TAGS[activeTagCategory].push(val);
-    localStorage.setItem("lifetracker_tags",JSON.stringify(CATEGORY_TAGS));
-    input.value="";
-    renderTagList();
-}
-function removeTag(i){
-    CATEGORY_TAGS[activeTagCategory].splice(i,1);
-    localStorage.setItem("lifetracker_tags",JSON.stringify(CATEGORY_TAGS));
-    renderTagList();
+/* ------------------ Settings ------------------ */
+let currentSettingsTab="timer";
+function showSettings(tab){
+  currentSettingsTab = tab;
+  toggleActive("settingsTimer", tab==="timer");
+  toggleActive("settingsCounter", tab==="counter");
+  toggleActive("settingsTags", tab==="tags");
+  renderSettings();
 }
 
-/* GOALS */
-function renderGoalEditor(){
-    const container=document.getElementById("goalList");
-    container.innerHTML="";
-    Object.entries(GOALS).forEach(([cat,goal])=>{
-        if(categoryTypes[cat]!==currentMode) return;
-        container.innerHTML+=`
-        <div class="goalRow">
-        <span>${cat}</span>
-        <input id="goal_${cat}" type="number" value="${goal}">
-        <button onclick="editTags('${cat}')"
-        style="padding:6px 10px;border:none;border-radius:8px;
-        background:#475569;color:white;cursor:pointer;">
-        Tags</button>
-        </div>`;
-    });
-}
-function saveGoals(){
-    Object.keys(GOALS).forEach(cat=>{
-        if(categoryTypes[cat]!==currentMode) return;
-        const val=Number(document.getElementById("goal_"+cat).value);
-        if(!isNaN(val)) GOALS[cat]=val;
-    });
-    localStorage.setItem("lifetracker_goals",JSON.stringify(GOALS));
-    loadData();
-}
+/* Render settings content */
+function renderSettings(){
+  const container = document.getElementById("settingsContent");
+  container.innerHTML = "";
 
-/* TAG BAR */
-function renderTagBar(){
-    const container=document.getElementById("tagBar");
-    container.innerHTML="";
-    const allTags=new Set();
-    Object.values(CATEGORY_TAGS).forEach(tags=>tags.forEach(t=>allTags.add(t)));
-
-    const allChip=document.createElement("div");
-    allChip.textContent="Alle";
-    allChip.className="tag-chip "+(selectedTag===""?"active":"");
-    allChip.onclick=()=>{ selectedTag=""; renderTagBar(); loadData(); };
-    container.appendChild(allChip);
-
+  if(currentSettingsTab==="tags"){
+    const allTags = [...new Set(Object.values(CATEGORY_TAGS).flat())];
+    if(allTags.length===0){ container.innerHTML="<p style='opacity:0.6;'>Keine Tags vorhanden</p>"; return; }
     allTags.forEach(tag=>{
-        const chip=document.createElement("div");
-        chip.textContent=tag;
-        chip.className="tag-chip "+(selectedTag===tag?"active":"");
-        chip.onclick=()=>{ selectedTag=tag; renderTagBar(); loadData(); };
-        container.appendChild(chip);
+      const btn = document.createElement("button");
+      btn.textContent = tag;
+      btn.style.cssText = "padding:6px 10px;margin:4px;border-radius:6px;background:#475569;color:white;border:none;cursor:pointer;width:100%;text-align:left;";
+      btn.onclick = ()=>{
+        const catEntry = Object.keys(CATEGORY_TAGS).find(cat => (CATEGORY_TAGS[cat]||[]).includes(tag));
+        if(catEntry){ activeCategory = catEntry; currentModalTab="tag"; renderModal(); document.getElementById("goalTagModal").style.display="flex"; }
+      };
+      container.appendChild(btn);
     });
+    return;
+  }
+
+  // Timer / Counter
+  Object.keys(categoryTypes).filter(cat=>categoryTypes[cat]===currentSettingsTab).forEach(cat=>{
+    const btn = document.createElement("button");
+    btn.textContent = cat;
+    btn.style.cssText = "padding:6px 10px;margin:4px;border-radius:6px;background:#475569;color:white;border:none;cursor:pointer;width:100%;text-align:left;";
+    btn.onclick = ()=>{ openGoalTagModal(cat); };
+    container.appendChild(btn);
+  });
 }
 
-/* LOAD DATA */
-async function loadData(){
-    const tRes=await fetch(TIMER_URL);
-    const cRes=await fetch(COUNTER_URL);
-    const timerData=normalizeArray(await tRes.json());
-    const counterData=normalizeArray(await cRes.json());
-    const totals={};
+/* ------------------ Modal ------------------ */
+let currentModalTab="goal";
+function openGoalTagModal(cat){ activeCategory=cat; currentModalTab="goal"; renderModal(); document.getElementById("goalTagModal").style.display="flex"; }
+function closeGoalTagModal(){ document.getElementById("goalTagModal").style.display="none"; }
+function switchModalTab(tab){ currentModalTab=tab; renderModal(); }
 
+function renderModal(){
+  document.getElementById("tabGoal").classList.toggle("active", currentModalTab==="goal");
+  document.getElementById("tabTag").classList.toggle("active", currentModalTab==="tag");
+  document.getElementById("modalGoalContent").style.display = currentModalTab==="goal"?"block":"none";
+  document.getElementById("modalTagContent").style.display = currentModalTab==="tag"?"block":"none";
+
+  if(currentModalTab==="goal"){
+    const catData = GOALS[activeCategory] || {};
+    document.getElementById("modalGoalContent").innerHTML=`
+      <div style="margin-bottom:10px;">
+        <label>Ziel-Typ:</label>
+        <select id="goalTypeSelect" style="width:100%;padding:6px;border-radius:6px;background:#0f172a;color:white;border:none;">
+          <option value="daily" ${catData.type==="daily"?"selected":""}>Täglich</option>
+          <option value="weekly" ${catData.type==="weekly"?"selected":""}>Wöchentlich</option>
+          <option value="none" ${catData.type==="none"?"selected":""}>Kein Ziel</option>
+        </select>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label>Ziel-Wert:</label>
+        <input type="number" id="goalValueInput" style="width:100%;padding:6px;border-radius:6px;border:none;background:#0f172a;color:white;" value="${catData.value||0}">
+      </div>
+      <button onclick="saveGoalConfig()" style="width:100%;padding:8px;border:none;border-radius:8px;background:#3b82f6;color:white;cursor:pointer;">Speichern</button>
+    `;
+  } else {
+    const tags = CATEGORY_TAGS[activeCategory]||[];
+    document.getElementById("modalTagContent").innerHTML=`
+      <div style="margin-bottom:10px;">
+        ${tags.map((tag,i)=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;background:#0f172a;padding:6px;border-radius:6px;margin-bottom:4px;">
+            <span>${tag}</span>
+            <button onclick="removeModalTag(${i})" style="background:#ef4444;border:none;padding:2px 6px;border-radius:4px;color:white;cursor:pointer;">✕</button>
+          </div>`).join("")}
+      </div>
+      <input id="newModalTagInput" placeholder="Neuer Tag..." style="width:100%;padding:6px;border-radius:6px;border:none;background:#0f172a;color:white;">
+      <button onclick="addModalTag()" style="width:100%;margin-top:6px;padding:6px;border:none;border-radius:6px;background:#3b82f6;color:white;cursor:pointer;">➕ Hinzufügen</button>
+    `;
+  }
+}
+
+/* ------------------ Modal Save / Tags ------------------ */
+function saveGoalConfig(){
+  const type = document.getElementById("goalTypeSelect").value;
+  const value = Number(document.getElementById("goalValueInput").value) || 0;
+  GOALS[activeCategory] = {type,value};
+  saveLocal("lifetracker_goals", GOALS);
+  renderSettings();
+  closeGoalTagModal();
+}
+function addModalTag(){
+  const val = document.getElementById("newModalTagInput").value.trim();
+  if(!val) return;
+  CATEGORY_TAGS[activeCategory] = CATEGORY_TAGS[activeCategory] || [];
+  if(!CATEGORY_TAGS[activeCategory].includes(val)) CATEGORY_TAGS[activeCategory].push(val);
+  saveLocal("lifetracker_tags", CATEGORY_TAGS);
+  renderModal();
+}
+function removeModalTag(i){
+  CATEGORY_TAGS[activeCategory].splice(i,1);
+  saveLocal("lifetracker_tags", CATEGORY_TAGS);
+  renderModal();
+}
+
+/* ------------------ Tag Bar / Chart ------------------ */
+function renderTagBar(){
+  const container = document.getElementById("tagBar"); container.innerHTML="";
+  const allTags = [...new Set(Object.values(CATEGORY_TAGS).flat())];
+  const makeChip = (label,active,click)=>{ const div=document.createElement("div"); div.textContent=label; div.className="tag-chip "+(active?"active":""); div.onclick=click; return div; };
+  container.appendChild(makeChip("Alle",selectedTag==="",()=>{selectedTag="";renderTagBar();loadData();}));
+  allTags.forEach(tag=>container.appendChild(makeChip(tag,selectedTag===tag,()=>{selectedTag=tag;renderTagBar();loadData();})));
+}
+
+/* ------------------ Load Data + Chart ------------------ */
+async function loadData(){
+  try {
+    const [tRes,cRes] = await Promise.all([fetch(URLS.timer), fetch(URLS.counter)]);
+    const timerData = normalize(await tRes.json());
+    const counterData = normalize(await cRes.json());
+
+    // Daten in LocalStorage speichern
+    localStorage.setItem("lifetracker_timer", JSON.stringify(timerData));
+    localStorage.setItem("lifetracker_counter", JSON.stringify(counterData));
+
+    // Kategorie-Typen
+    categoryTypes = {};
     timerData.forEach(e=>categoryTypes[e.category]="timer");
     counterData.forEach(e=>categoryTypes[e.category]="counter");
 
+    // Ziele initialisieren
     Object.keys(categoryTypes).forEach(cat=>{
-        if(!GOALS[cat]) GOALS[cat]=categoryTypes[cat]==="timer"?60:10;
+      if(!GOALS[cat]) GOALS[cat]={type:"daily", value: categoryTypes[cat]==="timer"?60:10};
     });
 
-    renderGoalEditor();
+    renderSettings();
     renderTagBar();
 
-    if(currentMode==="timer"){
-        timerData.forEach(e=>{
-            if(!isToday(e.start_ts)) return;
-            totals[e.category]=(totals[e.category]||0)+Math.floor(e.duration_s/60);
-        });
-    }
+    const source = currentMode==="timer"?timerData:counterData;
+    const totals = {};
+    source.forEach(e=>{
+      const ts = currentMode==="timer"?e.start_ts:e.timestamp;
+      if(!isToday(ts)) return;
+      const val = currentMode==="timer"?Math.floor(e.duration_s/60):e.value;
+      totals[e.category]=(totals[e.category]||0)+val;
+    });
 
-    if(currentMode==="counter"){
-        counterData.forEach(e=>{
-            if(!isToday(e.timestamp)) return;
-            totals[e.category]=(totals[e.category]||0)+e.value;
-        });
-    }
-
-    /* TAG VIEW */
     if(currentView==="tags"){
-        const tagTotals={};
-        Object.entries(totals).forEach(([cat,val])=>{
-            const tags=CATEGORY_TAGS[cat]||[];
-            tags.forEach(tag=>{
-                tagTotals[tag]=(tagTotals[tag]||0)+val;
-            });
-        });
-        renderChart(tagTotals);
-        return;
+      const tagTotals = {};
+      Object.entries(totals).forEach(([cat,val])=>(CATEGORY_TAGS[cat]||[]).forEach(tag=>tagTotals[tag]=(tagTotals[tag]||0)+val));
+      renderChart(tagTotals);
+      return;
     }
 
-    /* CATEGORY VIEW + TAG FILTER */
-    const categoriesOfMode = Object.keys(categoryTypes).filter(cat=>categoryTypes[cat]===currentMode);
-    const filteredCategories = selectedTag ? categoriesOfMode.filter(cat => (CATEGORY_TAGS[cat]||[]).includes(selectedTag)) : categoriesOfMode;
+    const categories = Object.keys(categoryTypes)
+      .filter(cat=>categoryTypes[cat]===currentMode && (!selectedTag||(CATEGORY_TAGS[cat]||[]).includes(selectedTag)));
     const displayData = {};
-    filteredCategories.forEach(cat=>displayData[cat]=totals[cat]||0);
-
-    let xp=0;
-    Object.entries(displayData).forEach(([cat,val])=>xp+=calculateXP(cat,val));
-    document.getElementById("xpToday").textContent=xp;
-
+    categories.forEach(cat=>displayData[cat]=totals[cat]||0);
     renderChart(displayData);
+
+  } catch(err){
+    console.error("Fehler beim Laden der Daten:", err);
+  }
 }
 
 function renderChart(data){
-    const ctx=document.getElementById("todayChart");
-    if(chart) chart.destroy();
-    chart=new Chart(ctx,{
-        type:"bar",
-        data:{labels:Object.keys(data),datasets:[{label:currentView==="tags"?"Tag Summe":"Heute",data:Object.values(data),backgroundColor:"#3b82f6"}]},
-        options:{responsive:true,scales:{y:{beginAtZero:true}}}
-    });
+  const ctx=document.getElementById("todayChart");
+  if(chart) chart.destroy();
+  chart = new Chart(ctx,{
+    type:"bar",
+    data:{labels:Object.keys(data),datasets:[{label:currentView==="tags"?"Tag Summe":"Heute",data:Object.values(data),backgroundColor:"#3b82f6"}]},
+    options:{responsive:true,scales:{y:{beginAtZero:true}}}
+  });
 }
 
+/* ------------------ Initial ------------------ */
 loadData();
 </script>
-
 </body>
 </html>
